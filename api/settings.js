@@ -1,10 +1,13 @@
 // Stores the app's admin settings (form fields, sections, report text, standard paragraphs)
-// in Vercel Blob. Anyone can read them; saving needs the ADMIN_PASSWORD environment variable.
-import { put, list, del } from '@vercel/blob';
+// in Vercel Blob. Works with both private and public Blob stores.
+// Anyone can read the settings; saving needs the ADMIN_PASSWORD environment variable.
+import { put, list, del, get } from '@vercel/blob';
 import crypto from 'node:crypto';
 
 const PREFIX = 'settings/config-';
 const MAX_BYTES = 500_000;
+// Try the store's likely access type first; fall back to the other one.
+const ACCESS_ORDER = process.env.BLOB_ACCESS === 'public' ? ['public', 'private'] : ['private', 'public'];
 
 function passwordOk(given) {
   const expected = process.env.ADMIN_PASSWORD || '';
@@ -23,16 +26,41 @@ async function readBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+async function readLatest() {
+  const { blobs } = await list({ prefix: PREFIX });
+  if (!blobs.length) return null;
+  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  const latest = blobs[0];
+  let lastErr;
+  for (const access of ACCESS_ORDER) {
+    try {
+      const r = await get(latest.pathname, { access, useCache: false });
+      if (r && r.stream) return JSON.parse(await new Response(r.stream).text());
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('Could not read the saved settings');
+}
+
+async function writeNew(json) {
+  let lastErr;
+  for (const access of ACCESS_ORDER) {
+    try {
+      return await put(PREFIX + Date.now() + '.json', json, {
+        access,
+        contentType: 'application/json',
+        addRandomSuffix: true,
+      });
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   try {
     if (req.method === 'GET') {
-      const { blobs } = await list({ prefix: PREFIX });
-      if (!blobs.length) return res.status(200).json({ config: null });
-      blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-      const r = await fetch(blobs[0].url, { cache: 'no-store' });
-      const data = await r.json();
-      return res.status(200).json({ config: data.config || null, savedAt: data.savedAt || null });
+      const data = await readLatest();
+      return res.status(200).json({ config: (data && data.config) || null, savedAt: (data && data.savedAt) || null });
     }
 
     if (req.method === 'POST') {
@@ -47,12 +75,9 @@ export default async function handler(req, res) {
       if (Buffer.byteLength(json) > MAX_BYTES) return res.status(413).json({ error: 'too_large' });
 
       const { blobs: old } = await list({ prefix: PREFIX });
-      await put(PREFIX + Date.now() + '.json', json, {
-        access: 'public',
-        contentType: 'application/json',
-        addRandomSuffix: true,
-      });
-      if (old.length) await del(old.map((b) => b.url));
+      const saved = await writeNew(json);
+      const stale = old.filter((b) => b.url !== saved.url).map((b) => b.url);
+      if (stale.length) await del(stale);
       return res.status(200).json({ ok: true });
     }
 
@@ -60,6 +85,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'server_error' });
+    return res.status(500).json({ error: 'server_error', detail: String((err && err.message) || err) });
   }
 }
