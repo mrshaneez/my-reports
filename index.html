@@ -145,6 +145,15 @@ textarea{resize:vertical;min-height:84px;line-height:1.9}
 .rep .lbl{font-weight:500;color:var(--muted);font-size:.88rem;margin:6px 0 0}
 .rep .empty{color:var(--muted);opacity:.75}
 .rep .sign{margin-top:34px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+.rep ol.refs,.frefs ol{margin:4px 0 8px;padding-inline-start:26px;font-size:.86rem;line-height:1.7;display:flex;flex-direction:column;gap:6px}
+.rep ol.refs a,.frefs a{color:var(--accent)}
+.rep ol.refs .url,.frefs .url{display:block;direction:ltr;text-align:right;font-family:var(--f-mono);font-size:.72rem;color:var(--muted);word-break:break-all}
+.frefs{border:1px solid var(--line);border-radius:var(--r);background:var(--field);padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.frefs > span{font-size:.86rem;color:var(--muted);font-weight:500}
+.ai-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ai-pass{font:inherit;direction:ltr;text-align:right;background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;color:var(--ink);width:170px}
+.ai-status{font-size:.86rem;color:var(--muted)}
+.ai-note{margin:0;font-size:.82rem;color:var(--seal)}
 
 .toast{position:fixed;inset-inline:0;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);display:flex;justify-content:center;pointer-events:none;z-index:20}
 .toast div{background:var(--ink);color:var(--sheet);padding:8px 18px;border-radius:999px;font-size:.92rem;direction:rtl;opacity:0;transform:translateY(8px);transition:.2s}
@@ -195,6 +204,8 @@ textarea{resize:vertical;min-height:84px;line-height:1.9}
             <button role="tab" data-tab="sections" aria-selected="false">ރިޕޯޓުގެ ބައިތައް</button>
             <button role="tab" data-tab="report" aria-selected="false">ސުރުޚީ އަދި ސޮއި</button>
             <button role="tab" data-tab="snippets" aria-selected="false">ޖުމްލަތައް</button>
+            <button role="tab" data-tab="ai" aria-selected="false">އޭއައި ލިޔުން</button>
+            <button role="tab" data-tab="judgments" aria-selected="false">ކުރީގެ ހުކުމްތައް</button>
           </div>
         </div>
         <div class="admin-body" id="adminBody"></div>
@@ -228,8 +239,11 @@ const fmtDate=d=>{if(!d)return'';const [y,m,dd]=String(d).split('-');if(!y||!m||
 const todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 
 /* ================= Default configuration ================= */
+function FINDINGS_SECTION(){return {id:'findings',heading:'ފާހަގަކުރެވުނު ކަންކަން',
+  hint:'ތިޔަ ޚިޔާލާއި ރިޕޯޓުގައި ހިމަނަން ބޭނުންވާ ނުކުތާތައް ތިރީގައި ލިޔުއްވާ. ދެން "ލިޔުއްވާ" އަށް ފިތާލުމުން، ފޯމުގައިވާ މަޢުލޫމާތު ދިރާސާކޮށް، ޤާނޫނީ އުޞޫލުތަކާއި ސާބިޤާތަކާއެކު ފާހަގަކުރެވުނު ކަންކަން ލިޔެދޭނެ.',
+  kind:'findings',hideIfEmpty:false,subs:[]}}
 const DEFAULT_CFG={
-  v:1,
+  v:2,
   app:{title:'އިސްތިއުނާފު ރިޕޯޓު',subtitle:'ނުކުތާތަކާއި، ދަށު ކޯޓުގެ ނިންމުމާއި، ފަރާތްތަކުން އެދޭ ގޮތް ލިޔުމުން ރިޕޯޓު އަމިއްލައަށް ތައްޔާރުވާނެ'},
   report:{topLine:'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيم',showTopLine:true,title:'އިސްތިއުނާފު މައްސަލާގެ ރިޕޯޓު',signLine:'ތައްޔާރުކުރީ: {author}',showDate:true,dateLabel:'ތާރީޚު'},
   fields:[
@@ -254,9 +268,11 @@ const DEFAULT_CFG={
     {id:'relief',heading:'މައްސަލަ ނިންމަން ފަރާތްތަކުން އެދޭ ގޮތް',hint:'',kind:'text',hideIfEmpty:false,
       subs:[{id:'reliefAppellant',label:'އިސްތިއުނާފު ކުރި ފަރާތުން އެދޭ ގޮތް',showLabel:true},
             {id:'reliefRespondent',label:'ދެކޮޅު ފަރާތުން އެދޭ ގޮތް',showLabel:true}]},
+    FINDINGS_SECTION(),
     {id:'notes',heading:'އިތުރު ނޯޓު',hint:'ބޭނުންނުވާނަމަ ހުސްކޮށް ބާއްވާ. ހުސްނަމަ ރިޕޯޓުގައި މި ބައި ނުފެންނާނެ.',kind:'text',hideIfEmpty:true,
       subs:[{id:'notes',label:'ނޯޓު',showLabel:false}]}
   ],
+  ai:{instructions:'',refsHeading:'ރެފަރެންސްތައް'},
   snippets:[
     {id:'sn1',title:'ހުކުމް ޤާއިމުކުރުން (ނަމޫނާ)',text:'މި ހުރިހާ ކަމަކަށް ބަލާއިރު، ދަށު ކޯޓުން މައްސަލަ ނިންމާފައިވާ ގޮތުގައި ޤާނޫނީ ގޯހެއް ހިނގާފައިވާކަން ފާހަގަ ނުކުރެވެއެވެ.'},
     {id:'sn2',title:'އަލުން ބެލުމަށް ފޮނުވުން (ނަމޫނާ)',text:'މި ނުކުތާގައި ދަށު ކޯޓުން ބަލަން ޖެހޭ ކަންތައްތައް ފުރިހަމައަށް ބަލާފައި ނުވާތީ، މައްސަލަ އަލުން ބެލުމަށް ދަށު ކޯޓަށް ފޮނުވުމަށް ފެނެއެވެ.'}
@@ -266,14 +282,21 @@ const DEFAULT_CFG={
 function normalize(c){
   const d=clone(DEFAULT_CFG);
   if(!c||typeof c!=='object')return d;
-  const out={v:1,
+  const kinds=['text','points','findings'];
+  const out={v:2,
     app:Object.assign({},d.app,c.app||{}),
     report:Object.assign({},d.report,c.report||{}),
+    ai:Object.assign({},d.ai,c.ai||{}),
     fields:Array.isArray(c.fields)?c.fields.filter(f=>f&&f.id).map(f=>({id:String(f.id),label:f.label||'',type:['text','code','date'].includes(f.type)?f.type:'text',place:['table','header','hidden'].includes(f.place)?f.place:'table',def:f.def||''})):d.fields,
-    sections:Array.isArray(c.sections)?c.sections.filter(s=>s&&s.id).map(s=>({id:String(s.id),heading:s.heading||'',hint:s.hint||'',kind:s.kind==='points'?'points':'text',hideIfEmpty:!!s.hideIfEmpty,
-      subs:(Array.isArray(s.subs)&&s.subs.length?s.subs:[{id:uid('s'),label:'',showLabel:false}]).filter(x=>x&&x.id).map(x=>({id:String(x.id),label:x.label||'',showLabel:!!x.showLabel}))})):d.sections,
+    sections:Array.isArray(c.sections)?c.sections.filter(s=>s&&s.id).map(s=>({id:String(s.id),heading:s.heading||'',hint:s.hint||'',kind:kinds.includes(s.kind)?s.kind:'text',hideIfEmpty:!!s.hideIfEmpty,
+      subs:s.kind==='findings'?[]:(Array.isArray(s.subs)&&s.subs.length?s.subs:[{id:uid('s'),label:'',showLabel:false}]).filter(x=>x&&x.id).map(x=>({id:String(x.id),label:x.label||'',showLabel:!!x.showLabel}))})):d.sections,
     snippets:Array.isArray(c.snippets)?c.snippets.filter(x=>x&&x.id).map(x=>({id:String(x.id),title:x.title||'',text:x.text||''})):d.snippets
   };
+  // settings saved before the findings section existed: add it before the notes section
+  if((c.v||1)<2&&!out.sections.some(s=>s.kind==='findings')){
+    const at=out.sections.findIndex(s=>s.id==='notes');
+    out.sections.splice(at<0?out.sections.length:at,0,FINDINGS_SECTION());
+  }
   return out;
 }
 
@@ -356,7 +379,24 @@ function renderForm(){
   C.sections.forEach(sec=>{
     h+=`<fieldset><legend>${esc(sec.heading)||'—'}</legend>`;
     if(sec.hint)h+=`<p class="hint">${esc(sec.hint)}</p>`;
-    if(sec.kind==='points'){
+    if(sec.kind==='findings'){
+      const busy=aiBusy[sec.id];
+      h+=textArea(`fv-${sec.id}`,`data-v="${sec.id}__view"`,S.v[sec.id+'__view']??'',4,'ތިޔަ ޚިޔާލާއި ރިޕޯޓުގައި ހިމަނަން ބޭނުންވާ ނުކުތާތައް',true);
+      if(IN_CLAUDE){
+        h+=`<p class="ai-note">މި ބައި އަމިއްލައަށް ލިޔެދިނުމުގެ ޚިދުމަތް ލިބޭނީ ވެބްސައިޓުގައެވެ. މިތަނުގައި ތިރީގެ ފޮށީގައި އަމިއްލައަށް ލިޔުއްވޭނެ.</p>`;
+      }else{
+        h+=`<div class="ai-row">`;
+        if(!adminPass)h+=`<input type="password" id="aiPass-${sec.id}" class="ai-pass" placeholder="އެޑްމިން ޕާސްވޯޑު" autocomplete="current-password">`;
+        h+=`<button class="primary" data-ai="${sec.id}" ${busy?'disabled':''}>${busy?'ލިޔަމުން…':(S.v[sec.id+'__text']?'އަލުން ލިޔުއްވާ':'ފާހަގަކުރެވުނު ކަންކަން ލިޔުއްވާ')}</button>
+          <span class="ai-status" id="ais-${sec.id}">${esc(aiStatus[sec.id]||'')}</span></div>`;
+      }
+      h+=textArea(`ft-${sec.id}`,`data-v="${sec.id}__text"`,S.v[sec.id+'__text']??'',8,'ފާހަގަކުރެވުނު ކަންކަން (ރިޕޯޓުގައި ފެންނާނީ މިއީ. ބަދަލު ގެނެވޭނެ)',true);
+      const refs=(S.refs&&S.refs[sec.id])||[];
+      if(refs.length){
+        h+=`<div class="frefs"><span>${esc(C.ai.refsHeading)}</span><ol>${refs.map(r=>`<li value="${r.n}"><a href="${safeUrl(r.url)}" target="_blank" rel="noopener">${esc(r.title||r.url)}</a><span class="url">${esc(r.url)}</span></li>`).join('')}</ol>
+          <p class="ai-note">ކޮންމެ ހަވާލާއެއް ބޭނުންކުރުމުގެ ކުރިން ލިންކު ހުޅުވައިގެން ބައްލަވާ. އޭއައި ލިޔުމުގައި ކުށް ހުރެދާނެ.</p></div>`;
+      }
+    }else if(sec.kind==='points'){
       const arr=ptsOf(sec.id);
       h+=`<div style="display:flex;flex-direction:column;gap:12px">`;
       arr.forEach((p,i)=>{
@@ -410,7 +450,45 @@ $('formPane').addEventListener('click',e=>{
   if(sbtn){toggleSnips(sbtn);return}
   const pick=e.target.closest('button[data-snipid]');
   if(pick){insertSnip(pick.dataset.target,pick.dataset.snipid);return}
+  const ai=e.target.closest('button[data-ai]');
+  if(ai){generateFindings(ai.dataset.ai);return}
 });
+
+/* ================= Findings (written by Claude with web search, on the website) ================= */
+const aiBusy={},aiStatus={};
+function safeUrl(u){return /^https?:\/\//i.test(String(u||''))?esc(u):'#'}
+function caseSummary(C){
+  const c2=clone(C);c2.sections=c2.sections.filter(s=>s.kind!=='findings');
+  c2.report=Object.assign({},c2.report,{signLine:'',showDate:false});
+  return build(c2).text;
+}
+function setAiStatus(sec,msg){aiStatus[sec]=msg;const el=$('ais-'+sec);if(el)el.textContent=msg}
+async function generateFindings(secId){
+  if(aiBusy[secId])return;
+  const passEl=$('aiPass-'+secId);
+  const pass=adminPass||(passEl&&passEl.value)||'';
+  if(!pass){setAiStatus(secId,'އެޑްމިން ޕާސްވޯޑު ޖައްސަވާ.');if(passEl)passEl.focus();return}
+  const C=CFG;
+  const payload={password:pass,caseText:caseSummary(C),view:(S.v[secId+'__view']||'').trim(),instructions:(C.ai.instructions||'').trim()};
+  aiBusy[secId]=true;aiStatus[secId]='ދިރާސާކޮށް ލިޔަމުން… (އާންމުކޮށް 1–3 މިނެޓު)';renderForm();
+  const t0=Date.now();
+  const tick=setInterval(()=>setAiStatus(secId,`ދިރާސާކޮށް ލިޔަމުން… ${Math.round((Date.now()-t0)/1000)} ސިކުންތު (އާންމުކޮށް 1–3 މިނެޓު)`),1000);
+  let msg='';
+  try{
+    const r=await fetch('/api/findings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    let j={};try{j=await r.json()}catch(_){}
+    if(r.ok&&j.text){
+      S.v[secId+'__text']=j.text;S.refs=S.refs||{};S.refs[secId]=Array.isArray(j.refs)?j.refs:[];
+      if(!adminPass){adminPass=pass;try{sessionStorage.setItem(KEY+'-pass',pass)}catch(_){}}
+      if(S._sample)delete S._sample;
+      save();msg=`ލިޔެވިއްޖެ. ${S.refs[secId].length} ހަވާލާ. ކޮންމެ ހަވާލާއެއް ބައްލަވާ.`;
+    }else if(r.status===401){adminPass='';try{sessionStorage.removeItem(KEY+'-pass')}catch(_){};msg='ޕާސްވޯޑު ރަނގަޅެއް ނޫން.'}
+    else if(j.error==='no_api_key')msg='ސާވަރުގައި ANTHROPIC_API_KEY ސެޓްކޮށްފައެއް ނުވޭ.';
+    else if(r.status===504||j.error==='timeout')msg='ވަގުތު ހަމަވެއްޖެ. ކުޑަ ވަގުތަކުން އަލުން މަސައްކަތް ކުރައްވާ.';
+    else msg='ލިޔެވޭކަށް ނުވި.'+(j.detail?' ('+j.detail+')':'');
+  }catch(err){msg='ސާވަރާ ގުޅޭކަށް ނުވި. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.'}
+  clearInterval(tick);aiBusy[secId]=false;aiStatus[secId]=msg;renderForm();render();
+}
 function closeSnips(){document.querySelectorAll('.snips').forEach(x=>x.remove())}
 function toggleSnips(btn){
   const wrap=btn.closest('.f');const open=wrap.querySelector('.snips');closeSnips();if(open)return;
@@ -450,6 +528,18 @@ function build(C){
   }
   let n=0;
   C.sections.forEach(sec=>{
+    if(sec.kind==='findings'){
+      const x=val(sec.id+'__text');const refs=(S.refs&&S.refs[sec.id])||[];
+      if(sec.hideIfEmpty&&!x)return;
+      n++;H.push(`<h3><b>${n}.</b> ${esc(sec.heading)}</h3>`);T.push('',`${n}. ${sec.heading}`);
+      if(x){x.split(/\n+/).map(s=>s.trim()).filter(Boolean).forEach(p=>H.push(`<p>${esc(p)}</p>`));T.push(x)}
+      else H.push(`<p class="empty">—</p>`);
+      if(x&&refs.length){
+        H.push(`<p class="lbl">${esc(C.ai.refsHeading)}:</p><ol class="refs">${refs.map(r=>`<li value="${r.n}"><a href="${safeUrl(r.url)}" target="_blank" rel="noopener">${esc(r.title||r.url)}</a><span class="url">${esc(r.url)}</span></li>`).join('')}</ol>`);
+        T.push('',C.ai.refsHeading+':',...refs.map(r=>`(${r.n}) ${r.title||''} — ${r.url}`));
+      }
+      return;
+    }
     if(sec.kind==='points'){
       const pts=(S.pts[sec.id]||[]).filter(p=>sec.subs.some(sb=>(p[sb.id]||'').trim()));
       if(sec.hideIfEmpty&&!pts.length)return;
@@ -522,7 +612,7 @@ $('tabReport').addEventListener('click',()=>setView('report'));
 /* ================= Admin panel ================= */
 const TYPE_OPTS=[['text','ދިވެހި ލިޔުން'],['code','ނަންބަރު / އިނގިރޭސި'],['date','ތާރީޚު']];
 const PLACE_OPTS=[['table','ޖަދުވަލުގައި'],['header','ސުރުޚީގެ ދަށުގައި'],['hidden','ރިޕޯޓުގައި ނުދައްކާ']];
-const KIND_OPTS=[['text','ލިޔުމުގެ ބައި'],['points','ނުކުތާތަކުގެ ބައި (ގިނަ ނުކުތާ)']];
+const KIND_OPTS=[['text','ލިޔުމުގެ ބައި'],['points','ނުކުތާތަކުގެ ބައި (ގިނަ ނުކުތާ)'],['findings','ފާހަގަކުރެވުނު ކަންކަން (އޭއައި)']];
 const aid=p=>'a-'+p.replace(/\./g,'-');
 const sel=(p,v,opts)=>`<select id="${aid(p)}" data-a="${p}">${opts.map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('')}</select>`;
 const txt=(p,v,label,extra='')=>`<label class="f"><span>${label}</span><input type="text" id="${aid(p)}" data-a="${p}" ${extra} value="${esc(v)}"></label>`;
@@ -554,8 +644,12 @@ function renderAdmin(){
         <div class="agrid">${txt(`sections.${i}.heading`,s.heading,'ސުރުޚީ','data-th')}
         <label class="f"><span>ބާވަތް</span>${sel(`sections.${i}.kind`,s.kind,KIND_OPTS)}</label></div>
         ${txt(`sections.${i}.hint`,s.hint,'ފޯމުގައި ދައްކާ އިރުޝާދު','data-th')}
-        ${chk(`sections.${i}.hideIfEmpty`,s.hideIfEmpty,'ހުސްނަމަ ރިޕޯޓުން ފޮރުވާ')}
-        <div class="subs-title">ލިޔާ ފޮށިތައް</div>`;
+        ${chk(`sections.${i}.hideIfEmpty`,s.hideIfEmpty,'ހުސްނަމަ ރިޕޯޓުން ފޮރުވާ')}`;
+      if(s.kind==='findings'){
+        h+=`<p class="hint" style="margin:0">މި ބައި ލިޔެދެނީ އޭއައި އިންނެވެ. ލިޔާނެ ގޮތާއި ހަމަތައް ބަދަލުކުރެއްވޭނީ "އޭއައި ލިޔުން" ޓެބުންނެވެ.</p></div>`;
+        return;
+      }
+      h+=`<div class="subs-title">ލިޔާ ފޮށިތައް</div>`;
       s.subs.forEach((sb,j)=>{
         const first=s.kind==='points'&&j===0;
         h+=`<div class="acard sub"><div class="row-head"><span class="token">${first?'ސުރުޚީ':'ފޮށި '+(j+1)}</span>${moves(`sections.${i}.subs`,j,s.subs.length,'ފުހެލާ',s.subs.length>1)}</div>
@@ -574,6 +668,30 @@ function renderAdmin(){
       <div class="tokens">${D.fields.map(f=>`<span class="token" title="${esc(f.label)}">{${esc(f.id)}}</span>`).join('')}<span class="token" title="މިއަދުގެ ތާރީޚު">{today}</span></div>
       ${chk('report.showDate',D.report.showDate,'މިއަދުގެ ތާރީޚު ދައްކާ')}${txt('report.dateLabel',D.report.dateLabel,'ތާރީޚުގެ ލޭބަލް','data-th')}</div>`;
   }
+  if(adminTab==='ai'){
+    h+=`<div class="acard"><b>ލިޔާނެ ގޮތާއި ހަމަތައް</b>
+      <p class="hint" style="margin:0">ފާހަގަކުރެވުނު ކަންކަން ލިޔާއިރު އަބަދުވެސް ޢަމަލުކުރާނެ އިރުޝާދުތައް: ލިޔުމުގެ ސްޓައިލް، ބޭނުންކުރާ ބަސްތައް، ބައެއް ކަންކަމުގައި ތިޔަ ހިފަހައްޓަވާ މަޤާމު، ބޭނުން ކުރަންވީ ޤާނޫނުތަކާއި ސާބިޤާތައް.</p>
+      ${area('ai.instructions',D.ai.instructions,'އިރުޝާދުތައް',6)}
+      ${txt('ai.refsHeading',D.ai.refsHeading,'ހަވާލާތަކުގެ ލިސްޓުގެ ސުރުޚީ','data-th')}</div>`;
+  }
+  if(adminTab==='judgments'){
+    if(IN_CLAUDE){
+      h+=`<div class="acard"><p class="hint" style="margin:0">ކުރީގެ ހުކުމްތައް އަޕްލޯޑުކުރެވޭނީ ވެބްސައިޓުގައެވެ.</p></div>`;
+    }else{
+      h+=`<div class="acard"><b>ކުރީގެ ހުކުމްތައް</b>
+        <p class="hint" style="margin:0">ތިޔަ ލިޔުއްވާފައިވާ ކުރީގެ ހުކުމްތައް މިތަނަށް ލައްވާ. ފާހަގަކުރެވުނު ކަންކަން ލިޔާއިރު، މި ހުކުމްތައް ދިރާސާކޮށް ތިޔަ ލިޔުމުގެ ސްޓައިލާއި، ބަސްތަކާއި، ތަރުތީބާއި، ބައެއް ކަންކަމުގައި ހިފަހައްޓަވާ މަޤާމު ދަސްކުރާނެ. ހުކުމްތައް ފެންނާނީ އެޑްމިން ޕާސްވޯޑު ޖައްސާ މީހުންނަށް އެކަނި.</p>
+        <label class="f"><span>ޓެކްސްޓް ފައިލު (.txt) އަޕްލޯޑުކުރޭ (ގިނަ ފައިލު އެއްފަހަރާ ވެސް)</span><input type="file" id="jFiles" multiple accept=".txt,text/plain"></label>
+        <div class="row-actions"><button class="small" data-jact="upload">ފައިލުތައް އަޕްލޯޑުކުރޭ</button></div>
+        <div class="subs-title">ނުވަތަ ހުކުމް ކޮޕީކޮށް ޕޭސްޓްކުރައްވާ</div>
+        <label class="f"><span>ނަން (މިސާލަކަށް މައްސަލާ ނަންބަރު)</span><input type="text" id="jTitle" data-th></label>
+        <label class="f"><span>ހުކުމުގެ ލިޔުން</span><textarea id="jText" data-th data-min="120" rows="5"></textarea></label>
+        <div class="row-actions"><button class="small" data-jact="paste">ހުކުމް އިތުރުކުރޭ</button></div>
+        <span class="ai-status" id="jStatus"></span>
+        <p class="hint" style="margin:0">މި ޓެބުގައި ގެންނަ ބަދަލުތައް ވަގުތުން ރައްކާވާނެ. "ރައްކާކުރޭ" އަށް ފިތާލަން ނުޖެހޭ.</p></div>
+        <div class="acard"><b>އަޕްލޯޑުކުރެވިފައިވާ ހުކުމްތައް</b><div id="jList"></div>
+        <p class="hint" style="margin:0">ލިޔާއިރު ބޭނުންކުރަނީ އެންމެ ފަހުން ލެއްވި ހުކުމްތަކުން ގާތްގަނޑަކަށް 120,000 އަކުރެވެ.</p></div>`;
+    }
+  }
   if(adminTab==='snippets'){
     h+=`<p class="hint" style="margin:0">އަބަދު ބޭނުންކުރާ ޖުމްލަތަކާއި ޕެރެގްރާފްތައް. ފޯމުގެ ކޮންމެ ލިޔާ ފޮށްޓެއްގެ "+ ޖުމްލަ" އިން މިތަކުން އެއް ޖުމްލަ ވައްދާލެވޭނެ.</p>`;
     D.snippets.forEach((s,i)=>{
@@ -584,7 +702,66 @@ function renderAdmin(){
   }
   $('adminBody').innerHTML=h;
   $('adminBody').querySelectorAll('textarea').forEach(autosize);
+  if(adminTab==='judgments'&&!IN_CLAUDE){if(JUDG===null)loadJudg();else renderJList()}
 }
+
+/* ---------- previous judgments (website only, stored behind the admin password) ---------- */
+let JUDG=null,jConfirm=null;
+async function jApi(body){
+  const r=await fetch('/api/judgments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:adminPass},body))});
+  let j={};try{j=await r.json()}catch(_){}
+  return {status:r.status,body:j};
+}
+function jMsg(t){const el=$('jStatus');if(el)el.textContent=t}
+function jErr(r){return r.status===401?'ޕާސްވޯޑު ބަދަލުވެއްޖެ. އަލުން ވަދެވަޑައިގަންނަވާ.':r.status===413?'ހުކުމް ވަރަށް ދިގު. 400,000 އަކުރަށްވުރެ ކުރުކުރައްވާ.':'ނުކުރެވުނު.'+(r.body&&r.body.detail?' ('+r.body.detail+')':'')}
+async function loadJudg(){
+  JUDG=null;renderJList();
+  try{const r=await jApi({action:'list'});if(r.status===200)JUDG=r.body.items||[];else{JUDG=[];jMsg(jErr(r))}}
+  catch(e){JUDG=[];jMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
+  renderJList();
+}
+function renderJList(){
+  const el=$('jList');if(!el)return;
+  if(JUDG===null){el.innerHTML='<p class="hint" style="margin:0">ލޯޑުކުރަނީ…</p>';return}
+  if(!JUDG.length){el.innerHTML='<p class="hint" style="margin:0">އަދި އެއްވެސް ހުކުމެއް ލައްވާފައެއް ނުވޭ.</p>';return}
+  el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+JUDG.map(j=>`<div class="row-head" style="border-bottom:1px solid var(--line);padding-block:4px">
+    <span style="min-width:0">${esc(j.title)} <span class="token">${Number(j.chars||0).toLocaleString('en')} chars</span> <span class="token">${esc(String(j.addedAt||'').slice(0,10))}</span></span>
+    ${jConfirm===j.id?`<span class="confirm">ފުހެލަންތަ؟ <button class="small primary" data-jact="yes" data-id="${esc(j.id)}">އާން</button><button class="small" data-jact="no">ނޫން</button></span>`
+      :`<button class="small" data-jact="del" data-id="${esc(j.id)}">ފުހެލާ</button>`}</div>`).join('')+'</div>';
+}
+async function addJudgment(title,text){
+  const r=await jApi({action:'add',title,text});
+  if(r.status===200){(JUDG=JUDG||[]).unshift(r.body.item);return true}
+  jMsg(jErr(r));return false;
+}
+$('adminBody').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-jact]');if(!b)return;
+  const a=b.dataset.jact;
+  if(a==='upload'){
+    const files=[...($('jFiles').files||[])];if(!files.length){jMsg('ފައިލެއް ހޮވާލައްވާ.');return}
+    b.disabled=true;let ok=0;
+    for(const [i,f] of files.entries()){
+      if(!/\.txt$/i.test(f.name)&&f.type!=='text/plain'){jMsg(`${f.name}: ޓެކްސްޓް (.txt) ފައިލެއް ނޫން. ވޯޑް ފައިލެއްނަމަ "Save as → Plain Text" ކޮށްލައްވާ.`);continue}
+      jMsg(`އަޕްލޯޑުކުރަނީ ${i+1} / ${files.length}…`);
+      try{if(await addJudgment(f.name.replace(/\.[^.]+$/,''),await f.text()))ok++}catch(err){jMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
+    }
+    b.disabled=false;$('jFiles').value='';renderJList();if(ok)jMsg(`${ok} ހުކުމް ލެވިއްޖެ.`);
+  }
+  if(a==='paste'){
+    const t=$('jText').value.trim(),title=$('jTitle').value.trim();
+    if(!t){jMsg('ހުކުމުގެ ލިޔުން ޕޭސްޓްކުރައްވާ.');return}
+    b.disabled=true;jMsg('ރައްކާކުރަނީ…');
+    try{if(await addJudgment(title,t)){$('jText').value='';$('jTitle').value='';jMsg('ހުކުމް ލެވިއްޖެ.')}}catch(err){jMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
+    b.disabled=false;renderJList();
+  }
+  if(a==='del'){jConfirm=b.dataset.id;renderJList()}
+  if(a==='no'){jConfirm=null;renderJList()}
+  if(a==='yes'){
+    const id=b.dataset.id;b.disabled=true;
+    try{const r=await jApi({action:'delete',id});if(r.status===200){JUDG=JUDG.filter(j=>j.id!==id);jMsg('ފުހެލެވިއްޖެ.')}else jMsg(jErr(r))}catch(err){jMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
+    jConfirm=null;renderJList();
+  }
+});
 function getPath(o,p){return p.split('.').reduce((a,k)=>a?.[k],o)}
 function setPath(o,p,v){const ks=p.split('.');const last=ks.pop();const t=ks.reduce((a,k)=>a[k],o);t[last]=v}
 

@@ -1,5 +1,8 @@
 {
   "rewrites": [
     { "source": "/fonts/Faruma.ttf", "destination": "/Faruma.ttf" }
-  ]
+  ],
+  "functions": {
+    "api/findings.js": { "maxDuration": 300 }
+  }
 }

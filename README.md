@@ -16,3 +16,14 @@ The admin panel's settings (form fields, report sections, header and signature, 
 - `ADMIN_PASSWORD` – the password the admin panel asks for
 
 Case drafts are kept only in the browser where they are written.
+
+## Findings (ފާހަގަކުރެވުނު ކަންކަން)
+
+`api/findings.js` writes the findings section with Claude. Claude researches with web search, so every reference link is a page it actually retrieved. The author's previous judgments, uploaded in the admin panel (`api/judgments.js`), are given to Claude as examples of the author's style.
+
+Extra environment variables:
+
+- `ANTHROPIC_API_KEY` – required, from console.anthropic.com
+- `ANTHROPIC_MODEL` – optional, defaults to `claude-opus-5-5`
+- `STYLE_CHARS` – optional, how many characters of previous judgments to include (default 120000)
+- `MAX_SEARCHES` – optional, web searches per analysis (default 10)
