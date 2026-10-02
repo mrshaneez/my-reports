@@ -43,6 +43,33 @@ function styleBlock(judgments) {
   return `The author's previous judgments follow. Study them for the author's writing style, structure, terminology and positions. They are examples only: do not take facts from them.\n\n${parts.join('\n\n')}`;
 }
 
+const REVISE_RULES = `
+Revising
+- You are given the findings already written for this case, the references they cite (numbered; markers like (1) or (2، 3) in the text point to them), and a new idea, instruction or question from the author.
+- Address it inside the findings: rewrite the affected paragraphs, or add new paragraphs where they belong. Keep everything else as it is, word for word, including its reference markers.
+- Never contradict, and never repeat, what the findings already say. If the author's idea would contradict an existing paragraph, revise that paragraph so the findings stay consistent, and say so in your note.
+- Research any new law or precedent with web search, under the same rules as before.
+- Output the complete revised findings (not only the changes), then a line containing exactly =====NOTE=====, then a short note to the author in Dhivehi: what you changed and where, or the answer to their question. If the question needs no change to the findings, return the findings unchanged and answer in the note.`;
+
+// Keep only the references still cited in the text, renumbered 1..n in order of first use.
+export function renumber(text, refs) {
+  const byN = new Map(refs.map((r) => [r.n, r]));
+  const order = [];
+  const groupRe = /\(([\d\s،,]+)\)/g;
+  for (const m of text.matchAll(groupRe)) {
+    for (const k of m[1].split(/[،,\s]+/).filter(Boolean).map(Number)) {
+      if (byN.has(k) && !order.includes(k)) order.push(k);
+    }
+  }
+  const map = new Map(order.map((old, i) => [old, i + 1]));
+  const out = text.replace(groupRe, (whole, inner) => {
+    const nums = inner.split(/[،,\s]+/).filter(Boolean).map(Number);
+    if (!nums.every((k) => map.has(k))) return whole;
+    return '(' + [...new Set(nums.map((k) => map.get(k)))].join('، ') + ')';
+  });
+  return { text: out, refs: order.map((old) => ({ ...byN.get(old), n: map.get(old) })) };
+}
+
 async function callClaude(body, signal) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -63,13 +90,13 @@ async function callClaude(body, signal) {
   return j;
 }
 
-// Turn Claude's final text blocks into plain text with [n] markers, plus a numbered list of the cited pages.
-export function assemble(blocks) {
+// Turn Claude's final text blocks into plain text with (n) markers, plus a numbered list of the cited pages.
+export function assemble(blocks, seedRefs = []) {
   let lastSearch = -1;
   blocks.forEach((b, i) => { if (b.type === 'web_search_tool_result') lastSearch = i; });
   const finalBlocks = blocks.slice(lastSearch + 1).filter((b) => b.type === 'text');
-  const refs = [];
-  const index = new Map();
+  const refs = seedRefs.map((r, i) => ({ n: i + 1, url: r.url, title: r.title || r.url }));
+  const index = new Map(refs.map((r) => [r.url, r.n]));
   let text = '';
   for (const b of finalBlocks) {
     text += b.text || '';
@@ -105,13 +132,27 @@ export default async function handler(req, res) {
     try { judgments = await loadAll(); } catch (e) { console.error('Could not load judgments', e); }
     const style = styleBlock(judgments);
 
-    const system = [{ type: 'text', text: RULES }];
+    const revising = body.mode === 'revise';
+    const current = String(body.current || '').trim();
+    const ask = String(body.request || '').trim();
+    const seed = Array.isArray(body.refs) ? body.refs.filter((r) => r && /^https?:\/\//.test(r.url)).map((r) => ({ url: String(r.url), title: String(r.title || r.url) })) : [];
+    if (revising && (!current || !ask)) return res.status(400).json({ error: 'empty_request' });
+
+    const system = [{ type: 'text', text: revising ? RULES + '\n' + REVISE_RULES : RULES }];
     if (style) system.push({ type: 'text', text: style, cache_control: { type: 'ephemeral' } });
 
     let user = `The case (as entered in the report form):\n\n${caseText}\n\n`;
     user += body.view ? `The author's own view and the points to include:\n\n${String(body.view)}\n\n` : `The author has not given a view; analyse the case on its merits.\n\n`;
     if (body.instructions) user += `The author's standing instructions on style and positions:\n\n${String(body.instructions)}\n\n`;
-    user += 'Write the findings section now, following the rules.';
+    if (revising) {
+      user += `The findings written so far:\n\n${current}\n\n`;
+      user += seed.length ? `Their references:\n${seed.map((r, i) => `(${i + 1}) ${r.title} — ${r.url}`).join('\n')}\n\n` : 'They cite no references yet.\n\n';
+      const hist = Array.isArray(body.history) ? body.history.map(String).filter(Boolean).slice(-10) : [];
+      if (hist.length) user += `Earlier requests from the author, already dealt with:\n${hist.map((h) => '- ' + h).join('\n')}\n\n`;
+      user += `The author's new idea, instruction or question:\n\n${ask}\n\nRevise the findings now, following the rules.`;
+    } else {
+      user += 'Write the findings section now, following the rules.';
+    }
 
     const request = {
       model: MODEL,
@@ -136,9 +177,14 @@ export default async function handler(req, res) {
       request.messages = [...request.messages, { role: 'assistant', content: r.content }];
     }
 
-    const { text, refs } = assemble(all);
+    const assembled = assemble(all, revising ? seed : []);
+    let text = assembled.text;
+    let note = '';
+    const cut = text.indexOf('=====NOTE=====');
+    if (cut >= 0) { note = text.slice(cut + 14).trim(); text = text.slice(0, cut).trim(); }
     if (!text) return res.status(502).json({ error: 'empty_answer', detail: 'Claude returned no findings text' });
-    return res.status(200).json({ text, refs, model: MODEL, searches, styleJudgments: judgments.length });
+    const final = renumber(text, assembled.refs);
+    return res.status(200).json({ text: final.text, refs: final.refs, note, model: MODEL, searches, styleJudgments: judgments.length });
   } catch (err) {
     if (err && err.name === 'AbortError') return res.status(504).json({ error: 'timeout' });
     if (err && err.status === 401) return res.status(500).json({ error: 'bad_api_key', detail: 'ANTHROPIC_API_KEY was rejected' });
