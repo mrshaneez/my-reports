@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     if (body.action === 'list') {
       const all = await loadAll();
-      return res.status(200).json({ items: all.map(({ id, title, text, addedAt }) => ({ id, title, chars: (text || '').length, addedAt })) });
+      return res.status(200).json({ items: all.map(({ id, title, text, addedAt }) => ({ id, title, chars: (text || '').length, addedAt, preview: (text || '').replace(/\s+/g, ' ').slice(0, 160) })) });
     }
 
     if (body.action === 'add') {
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       const id = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
       const item = { id, title, text, addedAt: new Date().toISOString() };
       await writeJson(PREFIX + id + '.json', item);
-      return res.status(200).json({ ok: true, item: { id, title, chars: text.length, addedAt: item.addedAt } });
+      return res.status(200).json({ ok: true, item: { id, title, chars: text.length, addedAt: item.addedAt, preview: text.replace(/\s+/g, ' ').slice(0, 160) } });
     }
 
     if (body.action === 'delete') {

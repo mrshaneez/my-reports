@@ -160,6 +160,7 @@ textarea{resize:vertical;min-height:84px;line-height:1.9}
 .ai-revise{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
 .ai-hist{font-size:.84rem;color:var(--muted)}
 .ai-hist ol{margin:4px 0 0;padding-inline-start:22px}
+.jprev{display:block;color:var(--muted);font-size:.8rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
 button.lib-btn{border-color:var(--accent);color:var(--accent)}
 button.lib-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .lib-head{background:var(--soft);border-color:var(--accent)}
@@ -749,7 +750,7 @@ function renderAdmin(){
     }else{
       h+=`<div class="acard"><b>ކުރީގެ ހުކުމްތައް</b>
         <p class="hint" style="margin:0">ތިޔަ ލިޔުއްވާފައިވާ ކުރީގެ ހުކުމްތައް މިތަނަށް ލައްވާ. ފާހަގަކުރެވުނު ކަންކަން ލިޔާއިރު، މި ހުކުމްތައް ދިރާސާކޮށް ތިޔަ ލިޔުމުގެ ސްޓައިލާއި، ބަސްތަކާއި، ތަރުތީބާއި، ބައެއް ކަންކަމުގައި ހިފަހައްޓަވާ މަޤާމު ދަސްކުރާނެ. ހުކުމްތައް ފެންނާނީ އެޑްމިން ޕާސްވޯޑު ޖައްސާ މީހުންނަށް އެކަނި.</p>
-        <label class="f"><span>ޓެކްސްޓް ފައިލު (.txt) އަޕްލޯޑުކުރޭ (ގިނަ ފައިލު އެއްފަހަރާ ވެސް)</span><input type="file" id="jFiles" multiple accept=".txt,text/plain"></label>
+        <label class="f"><span>ވޯޑް ފައިލު (.docx) ނުވަތަ ޓެކްސްޓް ފައިލު (.txt) އަޕްލޯޑުކުރޭ (ގިނަ ފައިލު އެއްފަހަރާ ވެސް)</span><input type="file" id="jFiles" multiple accept=".docx,.txt,.doc,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
         <div class="row-actions"><button class="small" data-jact="upload">ފައިލުތައް އަޕްލޯޑުކުރޭ</button></div>
         <div class="subs-title">ނުވަތަ ހުކުމް ކޮޕީކޮށް ޕޭސްޓްކުރައްވާ</div>
         <label class="f"><span>ނަން (މިސާލަކަށް މައްސަލާ ނަންބަރު)</span><input type="text" id="jTitle" data-th></label>
@@ -794,9 +795,42 @@ function renderJList(){
   if(JUDG===null){el.innerHTML='<p class="hint" style="margin:0">ލޯޑުކުރަނީ…</p>';return}
   if(!JUDG.length){el.innerHTML='<p class="hint" style="margin:0">އަދި އެއްވެސް ހުކުމެއް ލައްވާފައެއް ނުވޭ.</p>';return}
   el.innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+JUDG.map(j=>`<div class="row-head" style="border-bottom:1px solid var(--line);padding-block:4px">
-    <span style="min-width:0">${esc(j.title)} <span class="token">${Number(j.chars||0).toLocaleString('en')} chars</span> <span class="token">${esc(String(j.addedAt||'').slice(0,10))}</span></span>
+    <span style="min-width:0;flex:1 1 220px">${esc(j.title)} <span class="token">${Number(j.chars||0).toLocaleString('en')} chars</span> <span class="token">${esc(String(j.addedAt||'').slice(0,10))}</span>${j.preview?`<small class="jprev">${esc(j.preview)}…</small>`:''}</span>
     ${jConfirm===j.id?`<span class="confirm">ފުހެލަންތަ؟ <button class="small primary" data-jact="yes" data-id="${esc(j.id)}">އާން</button><button class="small" data-jact="no">ނޫން</button></span>`
       :`<button class="small" data-jact="del" data-id="${esc(j.id)}">ފުހެލާ</button>`}</div>`).join('')+'</div>';
+}
+/* Word (.docx) → text, in the browser. Old non-Unicode Thaana fonts (A_Faruma, A_Waheed…) store Latin
+   keyboard letters; runs in those fonts are converted to Unicode Thaana with the standard keyboard map. */
+let jszipLoading=null;
+function loadJSZip(){
+  if(window.JSZip)return Promise.resolve();
+  return jszipLoading||(jszipLoading=new Promise((ok,bad)=>{const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';sc.onload=ok;sc.onerror=()=>{jszipLoading=null;bad(new Error('JSZip'))};document.head.appendChild(sc)}));
+}
+const LEGACY_FONT=/^A_/i;
+async function docxText(file){
+  await loadJSZip();
+  const zip=await window.JSZip.loadAsync(await file.arrayBuffer());
+  const entry=zip.file('word/document.xml');if(!entry)throw new Error('not a Word document');
+  const doc=new DOMParser().parseFromString(await entry.async('string'),'application/xml');
+  const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const out=[];
+  for(const p of doc.getElementsByTagNameNS(W,'p')){
+    let line='';
+    for(const r of p.getElementsByTagNameNS(W,'r')){
+      if(r.parentNode&&r.parentNode.localName==='del')continue; // skip deleted tracked changes
+      const f=r.getElementsByTagNameNS(W,'rFonts')[0];
+      const font=f?(f.getAttributeNS(W,'cs')||f.getAttributeNS(W,'ascii')||f.getAttributeNS(W,'hAnsi')||''):'';
+      const legacy=LEGACY_FONT.test(font);
+      for(const n of r.childNodes){
+        if(n.localName==='t'){const t=n.textContent;line+=legacy?[...t].map(c=>TH[c]||c).join(''):t}
+        else if(n.localName==='tab')line+='\t';
+        else if(n.localName==='br'||n.localName==='cr')line+='\n';
+      }
+    }
+    out.push(line);
+  }
+  return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 async function addJudgment(title,text){
   const r=await jApi({action:'add',title,text});
@@ -808,13 +842,18 @@ $('adminBody').addEventListener('click',async e=>{
   const a=b.dataset.jact;
   if(a==='upload'){
     const files=[...($('jFiles').files||[])];if(!files.length){jMsg('ފައިލެއް ހޮވާލައްވާ.');return}
-    b.disabled=true;let ok=0;
+    b.disabled=true;let ok=0;const skipped=[];const skip=m=>{skipped.push(m);jMsg(m)};
     for(const [i,f] of files.entries()){
-      if(!/\.txt$/i.test(f.name)&&f.type!=='text/plain'){jMsg(`${f.name}: ޓެކްސްޓް (.txt) ފައިލެއް ނޫން. ވޯޑް ފައިލެއްނަމަ "Save as → Plain Text" ކޮށްލައްވާ.`);continue}
+      const isDocx=/\.docx$/i.test(f.name),isTxt=/\.txt$/i.test(f.name)||f.type==='text/plain';
+      if(/\.doc$/i.test(f.name)){skip(`${f.name}: ޕުރާނަ ވޯޑް ފައިލެކެވެ. ވޯޑުގައި ހުޅުވައި "Save as → Word Document (.docx)" ކޮށްލައްވާ.`);continue}
+      if(!isDocx&&!isTxt){skip(`${f.name}: .docx ނުވަތަ .txt ފައިލެއް ނޫން.`);continue}
       jMsg(`އަޕްލޯޑުކުރަނީ ${i+1} / ${files.length}…`);
-      try{if(await addJudgment(f.name.replace(/\.[^.]+$/,''),await f.text()))ok++}catch(err){jMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
+      let text='';
+      try{text=isDocx?await docxText(f):await f.text()}catch(err){skip(`${f.name}: ފައިލު ކިޔޭކަށް ނުވި. (${err.message||err})`);continue}
+      if(!text.trim()){skip(`${f.name}: ފައިލުގައި ލިޔުމެއް ނުފެނުނު.`);continue}
+      try{if(await addJudgment(f.name.replace(/\.[^.]+$/,''),text))ok++}catch(err){jMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
     }
-    b.disabled=false;$('jFiles').value='';renderJList();if(ok)jMsg(`${ok} ހުކުމް ލެވިއްޖެ.`);
+    b.disabled=false;$('jFiles').value='';renderJList();jMsg([ok?`${ok} ހުކުމް ލެވިއްޖެ.`:'',...skipped].filter(Boolean).join(' · '));
   }
   if(a==='paste'){
     const t=$('jText').value.trim(),title=$('jTitle').value.trim();
