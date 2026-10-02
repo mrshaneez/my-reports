@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="dv" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="preload" href="/fonts/Faruma.ttf" as="font" type="font/ttf" crossorigin>
+<title>އިސްތިއުނާފު ރިޕޯޓު</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+@font-face{font-family:"Faruma";src:url("/fonts/Faruma.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+/* Layout: two panes in RTL order — the drafting form (or admin editor) on the right, the live report sheet on the left; tabs on phones */
+:root{
+  --ground:#e9ecef;
+  --sheet:#ffffff;
+  --ink:#1b232b;
+  --muted:#5b6670;
+  --line:#cfd5db;
+  --field:#f6f7f9;
+  --accent:#1d4a5c;
+  --accent-ink:#ffffff;
+  --seal:#8a2b2b;
+  --soft:#dfe8ec;
+  --admin:#5a4a1c;
+  --admin-soft:#f3ecd9;
+  --f-thaana:"Faruma","MV Faseyha","MV Waheed",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12171c;--sheet:#1a2128;--ink:#e3e8ec;--muted:#98a4ae;--line:#2f3a44;--field:#212a32;
+  --accent:#6fb0c8;--accent-ink:#0f1a20;--seal:#d88a8a;--soft:#1f2f37;--admin:#e2c97e;--admin-soft:#2b271b;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#12171c;--sheet:#1a2128;--ink:#e3e8ec;--muted:#98a4ae;--line:#2f3a44;--field:#212a32;
+  --accent:#6fb0c8;--accent-ink:#0f1a20;--seal:#d88a8a;--soft:#1f2f37;--admin:#e2c97e;--admin-soft:#2b271b;color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-thaana);font-size:16px;line-height:1.9}
+.wrap{direction:rtl;padding-inline:16px;padding-block:20px 48px;max-width:1360px;margin:0 auto}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-bottom:18px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand h1{margin:0;font-size:1.45rem;font-weight:700;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:.9rem}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+button,select{font:inherit;cursor:pointer;border-radius:var(--r);border:1px solid var(--line);background:var(--sheet);color:var(--ink);padding:6px 14px;line-height:1.6}
+select{padding:5px 8px;direction:rtl}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+button.ghost{background:transparent}
+button.small{padding:2px 10px;font-size:.85rem}
+button.admin-btn{border-color:var(--admin);color:var(--admin);background:transparent}
+button.admin-btn[aria-pressed="true"]{background:var(--admin);color:var(--sheet)}
+.kbd{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--r);padding:5px 12px;background:var(--sheet);font-size:.9rem;cursor:pointer;user-select:none}
+.kbd input{accent-color:var(--accent);margin:0}
+
+.tabs{display:none;gap:6px;margin-bottom:14px}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.panes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;align-items:start}
+@media (max-width:900px){
+  .panes{grid-template-columns:minmax(0,1fr)}
+  .tabs{display:flex}
+  .panes[data-view="form"] .preview-pane{display:none}
+  .panes[data-view="report"] .left-pane{display:none}
+}
+.left-pane{min-width:0}
+
+/* form */
+.form-pane{display:flex;flex-direction:column;gap:16px;min-width:0}
+fieldset{margin:0;border:1px solid var(--line);border-radius:var(--r);background:var(--sheet);padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+legend{font-weight:700;padding-inline:6px;font-size:1.02rem}
+.hint{margin:-6px 0 0;color:var(--muted);font-size:.85rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0;position:relative}
+.f > .lblrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.f > .lblrow > span,.f > span{font-size:.86rem;color:var(--muted);font-weight:500}
+input[type=text],input[type=date],textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;width:100%;direction:rtl}
+input.ltr{direction:ltr;text-align:right;font-family:var(--f-mono);font-size:.92rem}
+textarea{resize:vertical;min-height:84px;line-height:1.9}
+
+.snip-btn{padding:0 8px;font-size:.78rem;border-style:dashed;color:var(--muted)}
+.snips{position:absolute;inset-inline-start:0;top:30px;z-index:5;background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 24px rgba(20,40,55,.15);padding:6px;display:flex;flex-direction:column;gap:2px;max-width:min(360px,100%);max-height:280px;overflow:auto}
+.snips button{border:0;text-align:right;padding:6px 10px;background:transparent;display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.snips button:hover{background:var(--soft)}
+.snips small{color:var(--muted);font-size:.78rem;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+
+.point{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--field)}
+.point input,.point textarea{background:var(--sheet)}
+.row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.point-num{font-weight:700;color:var(--accent)}
+.row-actions{display:flex;gap:6px;flex-wrap:wrap}
+.add{align-self:flex-start;border-style:dashed}
+
+.sample{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:var(--r);padding:8px 14px;font-size:.9rem}
+
+/* admin */
+.admin-pane{display:flex;flex-direction:column;gap:14px;min-width:0}
+.admin-head{background:var(--admin-soft);border:1px solid var(--admin);border-radius:var(--r);padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.admin-head h2{margin:0;font-size:1.08rem;color:var(--admin)}
+.admin-head p{margin:0;font-size:.86rem;color:var(--muted)}
+.admin-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.admin-tabs button[aria-selected="true"]{background:var(--admin);border-color:var(--admin);color:var(--sheet)}
+.admin-body{display:flex;flex-direction:column;gap:12px}
+.acard{border:1px solid var(--line);border-radius:var(--r);background:var(--sheet);padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.acard.sub{background:var(--field)}
+.acard .acard{background:var(--field)}
+.agrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.chk{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer}
+.chk input{accent-color:var(--admin);margin:0}
+.token{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);direction:ltr;background:var(--field);border:1px solid var(--line);border-radius:4px;padding:0 6px}
+.subs-title{font-size:.86rem;font-weight:700;color:var(--muted);margin:2px 0 -2px}
+.admin-foot{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);background:var(--sheet);border:1px solid var(--admin);border-radius:var(--r);padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.admin-foot .status{font-size:.86rem;color:var(--muted);margin-inline-start:auto}
+.admin-foot .primary{background:var(--admin);border-color:var(--admin);color:var(--sheet)}
+.tokens{display:flex;flex-wrap:wrap;gap:6px}
+
+/* report sheet */
+.preview-pane{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);min-width:0}
+.sheet-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.sheet-bar span{color:var(--muted);font-size:.86rem}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(20,40,55,.07);padding:36px 40px 44px;max-height:calc(100vh - 160px);overflow:auto}
+@media (max-width:900px){.sheet{max-height:none;padding:26px 20px 32px}.preview-pane{position:static}}
+
+.rep{direction:rtl;font-size:17px;line-height:2.05;max-width:68ch;margin:0 auto}
+.rep .bism{text-align:center;color:var(--muted);font-size:1rem;margin:0 0 6px}
+.rep h2.doc{text-align:center;font-size:1.35rem;margin:0;font-weight:700}
+.rep .sub{text-align:center;color:var(--muted);margin:2px 0 6px;font-size:.92rem}
+.rep .caseno{text-align:center;font-family:var(--f-mono);font-size:.9rem;color:var(--seal);margin-bottom:6px;direction:ltr}
+.rep .hgap{height:12px}
+.rep table.meta{width:100%;border-collapse:collapse;margin:0 0 22px;font-size:.93rem}
+.rep table.meta th,.rep table.meta td{border:1px solid var(--line);padding:5px 10px;text-align:right;vertical-align:top}
+.rep table.meta th{width:38%;font-weight:500;color:var(--muted);background:var(--field)}
+.rep .num{font-variant-numeric:tabular-nums}
+.rep h3{font-size:1.06rem;margin:24px 0 8px;font-weight:700;display:flex;gap:10px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.rep h3 b{color:var(--accent);font-variant-numeric:tabular-nums}
+.rep h4{font-size:.98rem;margin:16px 0 4px;font-weight:700;display:flex;gap:8px}
+.rep h4 b{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:500}
+.rep p{margin:0 0 8px;text-align:justify;white-space:pre-wrap}
+.rep .lbl{font-weight:500;color:var(--muted);font-size:.88rem;margin:6px 0 0}
+.rep .empty{color:var(--muted);opacity:.75}
+.rep .sign{margin-top:34px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+
+.toast{position:fixed;inset-inline:0;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);display:flex;justify-content:center;pointer-events:none;z-index:20}
+.toast div{background:var(--ink);color:var(--sheet);padding:8px 18px;border-radius:999px;font-size:.92rem;direction:rtl;opacity:0;transform:translateY(8px);transition:.2s}
+.toast.show div{opacity:1;transform:none}
+.confirm{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1 id="appTitle">އިސްތިއުނާފު ރިޕޯޓު</h1>
+      <p id="appSubtitle"></p>
+    </div>
+    <div class="tools">
+      <label class="kbd" title="އިނގިރޭސި ކީބޯޑުން ތާނައިން ލިޔުމަށް"><input type="checkbox" id="kbdToggle" checked> ތާނަ ކީބޯޑު (ފޮނެޓިކް)</label>
+      <button class="admin-btn" id="adminBtn" aria-pressed="false">އެޑްމިން ޕެނަލް</button>
+      <span id="clearArea"></span>
+      <button class="primary" id="copyBtn">ރިޕޯޓު ކޮޕީކުރޭ</button>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tabForm" aria-selected="true">ލިޔުން</button>
+    <button role="tab" id="tabReport" aria-selected="false">ރިޕޯޓު</button>
+  </div>
+
+  <div class="panes" id="panes" data-view="form">
+    <div class="left-pane">
+      <section class="form-pane" id="formPane" aria-label="ފޯމު"></section>
+      <section class="admin-pane" id="adminPane" aria-label="އެޑްމިން ޕެނަލް" hidden>
+        <form class="admin-head" id="adminGate" hidden>
+          <h2>އެޑްމިން ޕެނަލް</h2>
+          <p>ސެޓިންގްސް ބަދަލުކުރުމަށް އެޑްމިން ޕާސްވޯޑު ޖައްސަވާ.</p>
+          <label class="f"><span>ޕާސްވޯޑު</span><input type="password" id="adminPass" autocomplete="current-password" class="ltr" style="font:inherit;direction:ltr;text-align:right;background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;color:var(--ink)"></label>
+          <div class="row-actions"><button class="primary" type="submit" id="gateGo" style="background:var(--admin);border-color:var(--admin);color:var(--sheet)">ވަދެވޭ</button><button type="button" id="gateCancel">ބާތިލްކުރޭ</button></div>
+          <p id="gateMsg" style="color:var(--seal)"></p>
+        </form>
+        <div id="adminMain" style="display:contents">
+        <div class="admin-head">
+          <h2>އެޑްމިން ޕެނަލް</h2>
+          <p>ފޯމުގެ ބައިތަކާއި، ރިޕޯޓުގައި ފެންނަ ލިޔުންތައް މިތަނުން ބަދަލުކުރެވޭނެ. ކަނާތްފަރާތުގައި ރިޕޯޓު ފެންނާނީ ބަދަލުތަކާއެކުއެވެ. "ރައްކާކުރޭ" އަށް ފިތާލުމުން ބަދަލުތައް ދާއިމީވާނެ.</p>
+          <div class="admin-tabs" role="tablist" id="adminTabs">
+            <button role="tab" data-tab="fields" aria-selected="true">މައްސަލާގެ މަޢުލޫމާތު</button>
+            <button role="tab" data-tab="sections" aria-selected="false">ރިޕޯޓުގެ ބައިތައް</button>
+            <button role="tab" data-tab="report" aria-selected="false">ސުރުޚީ އަދި ސޮއި</button>
+            <button role="tab" data-tab="snippets" aria-selected="false">ޖުމްލަތައް</button>
+          </div>
+        </div>
+        <div class="admin-body" id="adminBody"></div>
+        <div class="admin-foot">
+          <button class="primary" id="adminSave">ބަދަލުތައް ރައްކާކުރޭ</button>
+          <button id="adminCancel">ބާތިލްކުރޭ</button>
+          <span id="resetArea"></span>
+          <span class="status" id="adminStatus"></span>
+        </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="preview-pane" aria-label="ރިޕޯޓު">
+      <div class="sheet-bar"><span id="sheetNote">ރިޕޯޓު (ލިޔަމުންދާ ގޮތަށް ބަދަލުވާނެ)</span><button class="small" id="copyBtn2">ކޮޕީކުރޭ</button></div>
+      <div class="sheet"><article class="rep" id="report"></article></div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast"><div id="toastMsg"></div></div>
+
+<script>
+(function(){
+const KEY='appeal-report-v2', OLDKEY='appeal-report-v1', CFGKEY='appeal-report-cfg';
+const MONTHS=['ޖަނަވަރީ','ފެބްރުއަރީ','މާރިޗު','އެޕްރީލް','މެއި','ޖޫން','ޖުލައި','އޮގަސްޓު','ސެޕްޓެމްބަރު','އޮކްޓޫބަރު','ނޮވެމްބަރު','ޑިސެމްބަރު'];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const uid=p=>p+Math.random().toString(36).slice(2,7);
+const fmtDate=d=>{if(!d)return'';const [y,m,dd]=String(d).split('-');if(!y||!m||!dd)return d;return `${+dd} ${MONTHS[+m-1]||m} ${y}`};
+const todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+
+/* ================= Default configuration ================= */
+const DEFAULT_CFG={
+  v:1,
+  app:{title:'އިސްތިއުނާފު ރިޕޯޓު',subtitle:'ނުކުތާތަކާއި، ދަށު ކޯޓުގެ ނިންމުމާއި، ފަރާތްތަކުން އެދޭ ގޮތް ލިޔުމުން ރިޕޯޓު އަމިއްލައަށް ތައްޔާރުވާނެ'},
+  report:{topLine:'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيم',showTopLine:true,title:'އިސްތިއުނާފު މައްސަލާގެ ރިޕޯޓު',signLine:'ތައްޔާރުކުރީ: {author}',showDate:true,dateLabel:'ތާރީޚު'},
+  fields:[
+    {id:'appealCourt',label:'އިސްތިއުނާފު ބަލާ ކޯޓު',type:'text',place:'header',def:'ހައިކޯޓު'},
+    {id:'caseNo',label:'މައްސަލާ ނަންބަރު (އިސްތިއުނާފު)',type:'code',place:'header',def:''},
+    {id:'appellant',label:'އިސްތިއުނާފު ކުރި ފަރާތް',type:'text',place:'table',def:''},
+    {id:'respondent',label:'ދެކޮޅު ފަރާތް',type:'text',place:'table',def:''},
+    {id:'caseType',label:'މައްސަލާގެ ބާވަތް',type:'text',place:'table',def:''},
+    {id:'lowerCourt',label:'ދަށު ކޯޓު',type:'text',place:'table',def:''},
+    {id:'lowerCaseNo',label:'ދަށު ކޯޓުގެ މައްސަލާ ނަންބަރު',type:'code',place:'table',def:''},
+    {id:'judgmentDate',label:'ދަށު ކޯޓުގެ ހުކުމް ނެރުނު ތާރީޚު',type:'date',place:'table',def:''},
+    {id:'appealDate',label:'އިސްތިއުނާފު ހުށަހެޅި ތާރީޚު',type:'date',place:'table',def:''},
+    {id:'author',label:'ރިޕޯޓު ތައްޔާރުކުރި ފަރާތް',type:'text',place:'hidden',def:''}
+  ],
+  sections:[
+    {id:'lower',heading:'ދަށު ކޯޓުން މައްސަލަ ނިންމި ގޮތް',hint:'ހުކުމުގެ ޚުލާޞާއާއި، ހުކުމަށް ވާޞިލުވި ސަބަބުތައް',kind:'text',hideIfEmpty:false,
+      subs:[{id:'lowerDecision',label:'ދަށު ކޯޓުގެ ނިންމުން',showLabel:false}]},
+    {id:'points',heading:'އިސްތިއުނާފުގެ ނުކުތާތައް',hint:'',kind:'points',hideIfEmpty:false,
+      subs:[{id:'title',label:'ނުކުތާ',showLabel:false},
+            {id:'detail',label:'ނުކުތާގެ ތަފްސީލު (އިސްތިއުނާފު ކުރި ފަރާތުގެ ދައުވާ)',showLabel:false},
+            {id:'reply',label:'ދެކޮޅު ފަރާތުގެ ޖަވާބު',showLabel:true}]},
+    {id:'relief',heading:'މައްސަލަ ނިންމަން ފަރާތްތަކުން އެދޭ ގޮތް',hint:'',kind:'text',hideIfEmpty:false,
+      subs:[{id:'reliefAppellant',label:'އިސްތިއުނާފު ކުރި ފަރާތުން އެދޭ ގޮތް',showLabel:true},
+            {id:'reliefRespondent',label:'ދެކޮޅު ފަރާތުން އެދޭ ގޮތް',showLabel:true}]},
+    {id:'notes',heading:'އިތުރު ނޯޓު',hint:'ބޭނުންނުވާނަމަ ހުސްކޮށް ބާއްވާ. ހުސްނަމަ ރިޕޯޓުގައި މި ބައި ނުފެންނާނެ.',kind:'text',hideIfEmpty:true,
+      subs:[{id:'notes',label:'ނޯޓު',showLabel:false}]}
+  ],
+  snippets:[
+    {id:'sn1',title:'ހުކުމް ޤާއިމުކުރުން (ނަމޫނާ)',text:'މި ހުރިހާ ކަމަކަށް ބަލާއިރު، ދަށު ކޯޓުން މައްސަލަ ނިންމާފައިވާ ގޮތުގައި ޤާނޫނީ ގޯހެއް ހިނގާފައިވާކަން ފާހަގަ ނުކުރެވެއެވެ.'},
+    {id:'sn2',title:'އަލުން ބެލުމަށް ފޮނުވުން (ނަމޫނާ)',text:'މި ނުކުތާގައި ދަށު ކޯޓުން ބަލަން ޖެހޭ ކަންތައްތައް ފުރިހަމައަށް ބަލާފައި ނުވާތީ، މައްސަލަ އަލުން ބެލުމަށް ދަށު ކޯޓަށް ފޮނުވުމަށް ފެނެއެވެ.'}
+  ]
+};
+
+function normalize(c){
+  const d=clone(DEFAULT_CFG);
+  if(!c||typeof c!=='object')return d;
+  const out={v:1,
+    app:Object.assign({},d.app,c.app||{}),
+    report:Object.assign({},d.report,c.report||{}),
+    fields:Array.isArray(c.fields)?c.fields.filter(f=>f&&f.id).map(f=>({id:String(f.id),label:f.label||'',type:['text','code','date'].includes(f.type)?f.type:'text',place:['table','header','hidden'].includes(f.place)?f.place:'table',def:f.def||''})):d.fields,
+    sections:Array.isArray(c.sections)?c.sections.filter(s=>s&&s.id).map(s=>({id:String(s.id),heading:s.heading||'',hint:s.hint||'',kind:s.kind==='points'?'points':'text',hideIfEmpty:!!s.hideIfEmpty,
+      subs:(Array.isArray(s.subs)&&s.subs.length?s.subs:[{id:uid('s'),label:'',showLabel:false}]).filter(x=>x&&x.id).map(x=>({id:String(x.id),label:x.label||'',showLabel:!!x.showLabel}))})):d.sections,
+    snippets:Array.isArray(c.snippets)?c.snippets.filter(x=>x&&x.id).map(x=>({id:String(x.id),title:x.title||'',text:x.text||''})):d.snippets
+  };
+  return out;
+}
+
+/* ================= Config load (cache → shared store) ================= */
+let CFG;
+try{CFG=normalize(JSON.parse(localStorage.getItem(CFGKEY)||'null'))}catch(e){CFG=normalize(null)}
+let cfgSource='default'; // 'default' | 'shared' | 'local'
+
+/* ================= Case draft (this device) ================= */
+const SAMPLE={_sample:true,
+  v:{caseNo:'2026/HC-A/000',appealCourt:'ހައިކޯޓު',appellant:'ޙަސަން ޢަލީ',respondent:'ޢާއިޝަތު މުޙައްމަދު',lowerCourt:'ސިވިލް ކޯޓު',lowerCaseNo:'0000/Cv-C/2025',judgmentDate:'2026-03-15',appealDate:'2026-04-10',caseType:'ކުލީގެ ދަރަނި ހޯދުމުގެ މައްސަލަ',author:'',
+    lowerDecision:'ކުލި ނުދައްކާ ހުރި 6 މަސްދުވަހުގެ ކުލި ކަމުގައިވާ 90,000 ރުފިޔާ، ހުކުމް ނެރޭ ދުވަހުން ފެށިގެން 3 މަސްދުވަހުގެ ތެރޭގައި އިސްތިއުނާފު ކުރި ފަރާތުން ދެކޮޅު ފަރާތަށް ދައްކަން ސިވިލް ކޯޓުން ހުކުމް ކޮށްފައިވެއެވެ. ކުލީގެ އެއްބަސްވުމާއި ދެފަރާތުގެ ބަޔާންތަކަށް ބަލާއިރު، ކުލި ނުދައްކާ ހުރިކަން ސާބިތުވާ ކަމަށް ކޯޓުން ނިންމާފައިވެއެވެ.',
+    reliefAppellant:'ދަށު ކޯޓުގެ ހުކުމް ބާޠިލުކޮށް، މައްސަލަ އަލުން ބެލުމަށް ދަށު ކޯޓަށް ފޮނުވުން.',
+    reliefRespondent:'ދަށު ކޯޓުގެ ހުކުމް ޤާއިމުކޮށް، އިސްތިއުނާފު ރައްދުކުރުން.',notes:''},
+  pts:{points:[
+    {title:'ހެކިބަސް ބަލައިގަތުމުގައި ގޯހެއް ހިނގާފައިވުން',
+     detail:'އިސްތިއުނާފު ކުރި ފަރާތުން ހުށަހެޅި ހެކިންގެ ބަސް ދަށު ކޯޓުން ނުހޯދާ ދޫކޮށްލާފައިވާއިރު، އެކަމުގެ ސަބަބު ހުކުމުގައި ބަޔާންކޮށްފައި ނުވާ ކަމަށް އިސްތިއުނާފު ކުރި ފަރާތުން ބުނެއެވެ.',
+     reply:'ހުށަހެޅި ހެކިންގެ ބަސް މައްސަލައާ ގުޅުމެއް ނެތް ކަމަށް ދަށު ކޯޓުން ޝަރީޢަތުގެ އަޑުއެހުމުގައި ފާހަގަކޮށްފައިވާ ކަމަށް ދެކޮޅު ފަރާތުން ބުނެއެވެ.'},
+    {title:'ކުލީގެ ޢަދަދު ހިސާބުކުރުމުގައި ގޯހެއް ހިނގާފައިވުން',
+     detail:'ކުލީގެ އެއްބަސްވުމުގެ 4 ވަނަ މާއްދާގެ ދަށުން، ގޭގެ މަރާމާތަށް ހޭދަކުރި 25,000 ރުފިޔާ ކުލިން އުނިކުރަން ޖެހޭކަން ދަށު ކޯޓުން ނުބެލި ކަމަށް އިސްތިއުނާފު ކުރި ފަރާތުން ބުނެއެވެ.',
+     reply:'މަރާމާތު ކުރުމަށް ލިޔުމަކުން ހުއްދަ ދީފައި ނުވާތީ، އެ ޢަދަދު ކުލިން އުނިނުކުރެވޭނެ ކަމަށް ދެކޮޅު ފަރާތުން ބުނެއެވެ.'}]}};
+function blankCase(){const s={v:{},pts:{}};CFG.fields.forEach(f=>{if(f.def)s.v[f.id]=f.def});return s}
+
+let S=null;
+try{S=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+if(!S){ // migrate the first version's draft if there is one
+  try{const o=JSON.parse(localStorage.getItem(OLDKEY)||'null');
+    if(o){S={v:{},pts:{points:Array.isArray(o.points)?o.points:[]}};Object.keys(o).forEach(k=>{if(k!=='points'&&k!=='_sample'&&typeof o[k]==='string')S.v[k]=o[k]});if(o._sample)S._sample=true}}catch(e){}
+}
+if(!S)S=clone(SAMPLE);
+S.v=S.v||{};S.pts=S.pts||{};
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let saveT;function queueSave(){clearTimeout(saveT);saveT=setTimeout(save,300)}
+
+/* ================= Mode ================= */
+let mode='form', D=null, adminTab='fields';
+const activeCfg=()=>mode==='admin'&&D?D:CFG;
+
+/* ================= Phonetic Thaana keyboard ================= */
+const TH={q:'ް',w:'އ',e:'ެ',E:'ޭ',r:'ރ',R:'ޜ',t:'ތ',T:'ޓ',y:'ޔ',Y:'ޠ',u:'ު',U:'ޫ',i:'ި',I:'ީ',o:'ޮ',O:'ޯ',p:'ޕ',Q:'ޤ',W:'ޢ',
+a:'ަ',A:'ާ',s:'ސ',S:'ށ',d:'ދ',D:'ޑ',f:'ފ',g:'ގ',G:'ޣ',h:'ހ',H:'ޙ',j:'ޖ',J:'ޛ',k:'ކ',K:'ޚ',l:'ލ',L:'ޅ',
+z:'ޒ',Z:'ޡ',x:'×',X:'ޘ',c:'ޗ',C:'ޝ',v:'ވ',V:'ޥ',b:'ބ',B:'ޞ',n:'ނ',N:'ޏ',m:'މ',M:'ޟ',',':'،',';':'؛','?':'؟'};
+let kbdOn=true;
+try{const v=localStorage.getItem(KEY+'-kbd');if(v!==null)kbdOn=v==='1'}catch(e){}
+$('kbdToggle').checked=kbdOn;
+$('kbdToggle').addEventListener('change',e=>{kbdOn=e.target.checked;try{localStorage.setItem(KEY+'-kbd',kbdOn?'1':'0')}catch(_){}});
+document.addEventListener('keydown',e=>{
+  const el=e.target;
+  if(!kbdOn||!el.matches||!el.matches('[data-th]'))return;
+  if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;
+  const ch=TH[e.key];if(!ch)return;
+  e.preventDefault();
+  el.setRangeText(ch,el.selectionStart,el.selectionEnd,'end');
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+});
+function autosize(t){t.style.height='auto';t.style.height=Math.max(t.scrollHeight+2,parseInt(t.dataset.min||84))+'px'}
+
+/* ================= Case form ================= */
+function snipBtn(target){return CFG.snippets.length?`<button type="button" class="small snip-btn" data-snip="${target}">+ ޖުމްލަ</button>`:''}
+function textArea(id,attrs,val,rows,label,showSnip){
+  return `<div class="f"><div class="lblrow"><span>${esc(label)}</span>${showSnip?snipBtn(id):''}</div><textarea id="${id}" ${attrs} data-th rows="${rows}">${esc(val)}</textarea></div>`;
+}
+function ptsOf(secId){if(!Array.isArray(S.pts[secId])||!S.pts[secId].length)S.pts[secId]=[{}];return S.pts[secId]}
+
+function renderForm(){
+  const C=CFG;let h='';
+  h+=`<div class="sample" id="sampleBar" ${S._sample?'':'hidden'}><span>މިހާރު ފެންނަނީ ނަމޫނާ މައްސަލައެކެވެ. ނަންތަކާއި ނަންބަރުތައް ހަޤީޤީ އެއްޗެއް ނޫނެވެ.</span><button class="small" id="startBlank">ހުސް ފޯމަކުން ފަށާ</button></div>`;
+  if(C.fields.length){
+    h+=`<fieldset><legend>މައްސަލާގެ މަޢުލޫމާތު</legend><div class="grid2">`;
+    C.fields.forEach(f=>{
+      const val=S.v[f.id]??'';
+      const inp=f.type==='date'?`<input type="date" id="fld-${f.id}" data-v="${f.id}" value="${esc(val)}">`
+        :f.type==='code'?`<input type="text" class="ltr" id="fld-${f.id}" data-v="${f.id}" value="${esc(val)}">`
+        :`<input type="text" id="fld-${f.id}" data-v="${f.id}" data-th value="${esc(val)}">`;
+      h+=`<label class="f"><span>${esc(f.label)}</span>${inp}</label>`;
+    });
+    h+=`</div></fieldset>`;
+  }
+  C.sections.forEach(sec=>{
+    h+=`<fieldset><legend>${esc(sec.heading)||'—'}</legend>`;
+    if(sec.hint)h+=`<p class="hint">${esc(sec.hint)}</p>`;
+    if(sec.kind==='points'){
+      const arr=ptsOf(sec.id);
+      h+=`<div style="display:flex;flex-direction:column;gap:12px">`;
+      arr.forEach((p,i)=>{
+        h+=`<div class="point"><div class="row-head"><span class="point-num">${esc(sec.subs[0]?.label||'ނުކުތާ')} ${i+1}</span><div class="row-actions">
+          <button class="small" data-pact="up" data-sec="${sec.id}" data-i="${i}" ${i===0?'disabled':''} aria-label="މައްޗަށް">↑</button>
+          <button class="small" data-pact="down" data-sec="${sec.id}" data-i="${i}" ${i===arr.length-1?'disabled':''} aria-label="ތިރިއަށް">↓</button>
+          <button class="small" data-pact="del" data-sec="${sec.id}" data-i="${i}" ${arr.length===1?'disabled':''}>ފުހެލާ</button></div></div>`;
+        sec.subs.forEach((sb,j)=>{
+          const id=`pt-${sec.id}-${i}-${sb.id}`, attr=`data-pt="${sec.id}|${i}|${sb.id}"`;
+          if(j===0)h+=`<label class="f"><span>${esc(sb.label)}</span><input type="text" id="${id}" ${attr} data-th value="${esc(p[sb.id]??'')}"></label>`;
+          else h+=textArea(id,attr,p[sb.id]??'',3,sb.label,true);
+        });
+        h+=`</div>`;
+      });
+      h+=`</div><button class="add" data-pact="add" data-sec="${sec.id}">+ ${esc(sec.subs[0]?.label||'ނުކުތާ')}އެއް އިތުރުކުރޭ</button>`;
+    }else{
+      sec.subs.forEach(sb=>{
+        const lbl=sec.subs.length>1||sb.showLabel?sb.label:'';
+        h+=textArea(`sub-${sec.id}-${sb.id}`,`data-v="${sb.id}"`,S.v[sb.id]??'',sec.subs.length>1?3:5,lbl,true);
+      });
+    }
+    h+=`</fieldset>`;
+  });
+  $('formPane').innerHTML=h;
+  $('formPane').querySelectorAll('textarea').forEach(autosize);
+  const sb=$('startBlank');if(sb)sb.addEventListener('click',()=>{S=blankCase();save();renderForm();render()});
+}
+
+$('formPane').addEventListener('input',e=>{
+  const el=e.target;
+  if(el.dataset.v!==undefined)S.v[el.dataset.v]=el.value;
+  else if(el.dataset.pt){const [sec,i,sub]=el.dataset.pt.split('|');ptsOf(sec)[+i][sub]=el.value}
+  else return;
+  if(S._sample){delete S._sample;const b=$('sampleBar');if(b)b.hidden=true}
+  if(el.tagName==='TEXTAREA')autosize(el);
+  render();queueSave();
+});
+$('formPane').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-pact]');
+  if(b){
+    const sec=b.dataset.sec,arr=ptsOf(sec),i=+b.dataset.i,a=b.dataset.pact;
+    if(a==='up'&&i>0)[arr[i-1],arr[i]]=[arr[i],arr[i-1]];
+    if(a==='down'&&i<arr.length-1)[arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+    if(a==='del'&&arr.length>1)arr.splice(i,1);
+    if(a==='add')arr.push({});
+    renderForm();render();save();
+    if(a==='add'){const t=$(`pt-${sec}-${arr.length-1}-${activeCfg().sections.find(s=>s.id===sec)?.subs[0]?.id}`);if(t)t.focus()}
+    return;
+  }
+  const sbtn=e.target.closest('button[data-snip]');
+  if(sbtn){toggleSnips(sbtn);return}
+  const pick=e.target.closest('button[data-snipid]');
+  if(pick){insertSnip(pick.dataset.target,pick.dataset.snipid);return}
+});
+function closeSnips(){document.querySelectorAll('.snips').forEach(x=>x.remove())}
+function toggleSnips(btn){
+  const wrap=btn.closest('.f');const open=wrap.querySelector('.snips');closeSnips();if(open)return;
+  const d=document.createElement('div');d.className='snips';
+  d.innerHTML=CFG.snippets.map(s=>`<button type="button" data-snipid="${esc(s.id)}" data-target="${btn.dataset.snip}"><span>${esc(s.title||'—')}</span><small>${esc(s.text)}</small></button>`).join('');
+  wrap.appendChild(d);
+}
+function insertSnip(targetId,snipId){
+  const t=$(targetId),s=CFG.snippets.find(x=>x.id===snipId);closeSnips();if(!t||!s)return;
+  const st=t.selectionStart??t.value.length,en=t.selectionEnd??st;
+  const before=t.value.slice(0,st);const pad=before&&!/\s$/.test(before)?' ':'';
+  t.setRangeText(pad+s.text,st,en,'end');t.focus();t.dispatchEvent(new Event('input',{bubbles:true}));
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.snips')&&!e.target.closest('[data-snip]'))closeSnips()});
+
+/* ================= Report ================= */
+function fillTokens(tpl,C){
+  return String(tpl||'').replace(/\{([A-Za-z0-9_-]+)\}/g,(m,k)=>{
+    if(k==='today')return fmtDate(todayISO());
+    const f=C.fields.find(x=>x.id===k);if(!f)return m;
+    const v=(S.v[k]||'').trim();return v?(f.type==='date'?fmtDate(v):v):'..................';
+  });
+}
+function build(C){
+  const H=[],T=[];const val=id=>(S.v[id]||'').trim();
+  const fv=f=>f.type==='date'?fmtDate(val(f.id)):val(f.id);
+  if(C.report.showTopLine&&C.report.topLine){H.push(`<p class="bism">${esc(C.report.topLine)}</p>`)}
+  H.push(`<h2 class="doc">${esc(C.report.title)}</h2>`);T.push(C.report.title);
+  C.fields.filter(f=>f.place==='header'&&fv(f)).forEach(f=>{
+    H.push(f.type==='code'?`<div class="caseno">${esc(fv(f))}</div>`:`<p class="sub">${esc(fv(f))}</p>`);T.push(fv(f));
+  });
+  H.push(`<div class="hgap"></div>`);T.push('');
+  const rows=C.fields.filter(f=>f.place==='table'&&fv(f));
+  if(rows.length){
+    H.push(`<table class="meta"><tbody>${rows.map(f=>`<tr><th>${esc(f.label)}</th><td class="num"${f.type==='code'?' dir="ltr" style="text-align:right"':''}>${esc(fv(f))}</td></tr>`).join('')}</tbody></table>`);
+    rows.forEach(f=>T.push(`${f.label}: ${fv(f)}`));
+  }
+  let n=0;
+  C.sections.forEach(sec=>{
+    if(sec.kind==='points'){
+      const pts=(S.pts[sec.id]||[]).filter(p=>sec.subs.some(sb=>(p[sb.id]||'').trim()));
+      if(sec.hideIfEmpty&&!pts.length)return;
+      n++;H.push(`<h3><b>${n}.</b> ${esc(sec.heading)}</h3>`);T.push('',`${n}. ${sec.heading}`);
+      if(!pts.length)H.push(`<p class="empty">—</p>`);
+      pts.forEach((p,i)=>{
+        const t0=(p[sec.subs[0]?.id]||'').trim();
+        H.push(`<h4><b>${n}.${i+1}</b> ${esc(t0||'—')}</h4>`);T.push('',`${n}.${i+1} ${t0}`);
+        sec.subs.slice(1).forEach(sb=>{const x=(p[sb.id]||'').trim();if(!x)return;
+          if(sb.showLabel){H.push(`<p class="lbl">${esc(sb.label)}:</p>`);T.push(sb.label+':')}
+          H.push(`<p>${esc(x)}</p>`);T.push(x);});
+      });
+    }else{
+      const any=sec.subs.some(sb=>val(sb.id));
+      if(sec.hideIfEmpty&&!any)return;
+      n++;H.push(`<h3><b>${n}.</b> ${esc(sec.heading)}</h3>`);T.push('',`${n}. ${sec.heading}`);
+      let m=0;
+      sec.subs.forEach(sb=>{
+        const x=val(sb.id);
+        if(sb.showLabel){m++;H.push(`<h4><b>${n}.${m}</b> ${esc(sb.label)}</h4>`);T.push(`${n}.${m} ${sb.label}`)}
+        H.push(x?`<p>${esc(x)}</p>`:`<p class="empty">—</p>`);if(x)T.push(x);
+      });
+    }
+  });
+  const sign=fillTokens(C.report.signLine,C).trim();
+  const date=C.report.showDate?`${C.report.dateLabel?C.report.dateLabel+': ':''}${fmtDate(todayISO())}`:'';
+  if(sign||date){H.push(`<div class="sign"><span>${esc(sign)}</span><span class="num">${esc(date)}</span></div>`);T.push('',sign,date)}
+  return {html:H.join(''),text:T.join('\n').replace(/\n{3,}/g,'\n\n').trim()};
+}
+function render(){
+  const C=activeCfg();
+  $('report').innerHTML=build(C).html;
+  $('appTitle').textContent=C.app.title||'';
+  $('appSubtitle').textContent=C.app.subtitle||'';
+  $('sheetNote').textContent=mode==='admin'?'ރިޕޯޓު (އެޑްމިން ބަދަލުތަކާއެކު)':'ރިޕޯޓު (ލިޔަމުންދާ ގޮތަށް ބަދަލުވާނެ)';
+}
+
+function toast(m){$('toastMsg').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),2600)}
+async function copyReport(){
+  const r=build(activeCfg());
+  const html=`<div dir="rtl" style="font-family:'Faruma','MV Faseyha',sans-serif;line-height:1.9">${r.html}</div>`;
+  try{
+    if(window.ClipboardItem&&navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([r.text],{type:'text/plain'})})]);
+    }else{await navigator.clipboard.writeText(r.text)}
+    toast('ރިޕޯޓު ކޮޕީކުރެވިއްޖެ. ވޯޑަށް ޕޭސްޓް ކުރެވޭނެ.');
+  }catch(e){
+    try{await navigator.clipboard.writeText(r.text);toast('ރިޕޯޓު ކޮޕީކުރެވިއްޖެ.');return}catch(_){}
+    const rg=document.createRange();rg.selectNodeContents($('report'));const s=getSelection();s.removeAllRanges();s.addRange(rg);
+    toast('ކޮޕީ ނުކުރެވުނު. ރިޕޯޓު ސެލެކްޓްކޮށްފިން، Ctrl+C ފިތާލާ.');
+  }
+}
+$('copyBtn').addEventListener('click',copyReport);
+$('copyBtn2').addEventListener('click',copyReport);
+
+/* clear form with in-page confirm */
+function resetClear(){$('clearArea').innerHTML='<button class="ghost" id="clearBtn">ފޯމު ސާފުކުރޭ</button>';$('clearBtn').addEventListener('click',askClear)}
+function askClear(){
+  $('clearArea').innerHTML='<span class="confirm">ހުރިހާ ލިޔުމެއް ފުހެލަންތަ؟ <button class="small primary" id="yesClear">އާން</button><button class="small" id="noClear">ނޫން</button></span>';
+  $('yesClear').addEventListener('click',()=>{S=blankCase();save();renderForm();render();resetClear();toast('ފޯމު ސާފުކުރެވިއްޖެ.')});
+  $('noClear').addEventListener('click',resetClear);
+}
+resetClear();
+
+/* phone tabs */
+function setView(v){$('panes').dataset.view=v;$('tabForm').setAttribute('aria-selected',v==='form');$('tabReport').setAttribute('aria-selected',v==='report')}
+$('tabForm').addEventListener('click',()=>setView('form'));
+$('tabReport').addEventListener('click',()=>setView('report'));
+
+/* ================= Admin panel ================= */
+const TYPE_OPTS=[['text','ދިވެހި ލިޔުން'],['code','ނަންބަރު / އިނގިރޭސި'],['date','ތާރީޚު']];
+const PLACE_OPTS=[['table','ޖަދުވަލުގައި'],['header','ސުރުޚީގެ ދަށުގައި'],['hidden','ރިޕޯޓުގައި ނުދައްކާ']];
+const KIND_OPTS=[['text','ލިޔުމުގެ ބައި'],['points','ނުކުތާތަކުގެ ބައި (ގިނަ ނުކުތާ)']];
+const aid=p=>'a-'+p.replace(/\./g,'-');
+const sel=(p,v,opts)=>`<select id="${aid(p)}" data-a="${p}">${opts.map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${l}</option>`).join('')}</select>`;
+const txt=(p,v,label,extra='')=>`<label class="f"><span>${label}</span><input type="text" id="${aid(p)}" data-a="${p}" ${extra} value="${esc(v)}"></label>`;
+const area=(p,v,label,rows=3)=>`<label class="f"><span>${label}</span><textarea id="${aid(p)}" data-a="${p}" data-th data-min="60" rows="${rows}">${esc(v)}</textarea></label>`;
+const chk=(p,v,label)=>`<label class="chk"><input type="checkbox" id="${aid(p)}" data-a="${p}"${v?' checked':''}> ${label}</label>`;
+const moves=(arrPath,i,len,delLabel='ފުހެލާ',canDel=true)=>`<div class="row-actions">
+  <button class="small" data-aact="up" data-arr="${arrPath}" data-i="${i}" ${i===0?'disabled':''} aria-label="މައްޗަށް">↑</button>
+  <button class="small" data-aact="down" data-arr="${arrPath}" data-i="${i}" ${i===len-1?'disabled':''} aria-label="ތިރިއަށް">↓</button>
+  <button class="small" data-aact="del" data-arr="${arrPath}" data-i="${i}" ${canDel?'':'disabled'}>${delLabel}</button></div>`;
+
+function renderAdmin(){
+  document.querySelectorAll('#adminTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===adminTab));
+  let h='';
+  if(adminTab==='fields'){
+    h+=`<p class="hint" style="margin:0">މައްސަލާގެ މަޢުލޫމާތުގެ ބައިގައި ހުންނަ ފީލްޑުތައް. "ރިޕޯޓުގައި" އިން ކަނޑައަޅާނީ ރިޕޯޓުގައި އެ މަޢުލޫމާތު ފެންނާނެ ތަނެވެ.</p>`;
+    D.fields.forEach((f,i)=>{
+      h+=`<div class="acard"><div class="row-head"><span class="token">{${esc(f.id)}}</span>${moves('fields',i,D.fields.length)}</div>
+        <div class="agrid">${txt(`fields.${i}.label`,f.label,'ލޭބަލް','data-th')}
+        <label class="f"><span>ބާވަތް</span>${sel(`fields.${i}.type`,f.type,TYPE_OPTS)}</label>
+        <label class="f"><span>ރިޕޯޓުގައި</span>${sel(`fields.${i}.place`,f.place,PLACE_OPTS)}</label>
+        ${txt(`fields.${i}.def`,f.def,'ފުރަތަމަ އަގު (ހުސް ފޯމުގައި)',f.type==='text'?'data-th':'')}</div></div>`;
+    });
+    h+=`<button class="add" data-aact="add" data-arr="fields">+ ފީލްޑެއް އިތުރުކުރޭ</button>`;
+  }
+  if(adminTab==='sections'){
+    h+=`<p class="hint" style="margin:0">ރިޕޯޓުގެ ބައިތައް ހުންނަ ތަރުތީބު. ކޮންމެ ބައެއްގެ ތެރޭގައި ލިޔާނެ ފޮށިތައް "ލިޔާ ފޮށިތައް" ގައި. ނުކުތާތަކުގެ ބައިގައި ފުރަތަމަ ފޮށިއަކީ ނުކުތާގެ ސުރުޚީ.</p>`;
+    D.sections.forEach((s,i)=>{
+      h+=`<div class="acard"><div class="row-head"><b>ބައި ${i+1}</b>${moves('sections',i,D.sections.length)}</div>
+        <div class="agrid">${txt(`sections.${i}.heading`,s.heading,'ސުރުޚީ','data-th')}
+        <label class="f"><span>ބާވަތް</span>${sel(`sections.${i}.kind`,s.kind,KIND_OPTS)}</label></div>
+        ${txt(`sections.${i}.hint`,s.hint,'ފޯމުގައި ދައްކާ އިރުޝާދު','data-th')}
+        ${chk(`sections.${i}.hideIfEmpty`,s.hideIfEmpty,'ހުސްނަމަ ރިޕޯޓުން ފޮރުވާ')}
+        <div class="subs-title">ލިޔާ ފޮށިތައް</div>`;
+      s.subs.forEach((sb,j)=>{
+        const first=s.kind==='points'&&j===0;
+        h+=`<div class="acard sub"><div class="row-head"><span class="token">${first?'ސުރުޚީ':'ފޮށި '+(j+1)}</span>${moves(`sections.${i}.subs`,j,s.subs.length,'ފުހެލާ',s.subs.length>1)}</div>
+          ${txt(`sections.${i}.subs.${j}.label`,sb.label,'ލޭބަލް','data-th')}
+          ${first?'':chk(`sections.${i}.subs.${j}.showLabel`,sb.showLabel,'ރިޕޯޓުގައި ލޭބަލް ދައްކާ')}</div>`;
+      });
+      h+=`<button class="add small" data-aact="add" data-arr="sections.${i}.subs">+ ފޮށްޓެއް އިތުރުކުރޭ</button></div>`;
+    });
+    h+=`<button class="add" data-aact="add" data-arr="sections">+ ބައެއް އިތުރުކުރޭ</button>`;
+  }
+  if(adminTab==='report'){
+    h+=`<div class="acard"><b>އެޕް</b>${txt('app.title',D.app.title,'އެޕްގެ ނަން','data-th')}${txt('app.subtitle',D.app.subtitle,'ނަމުގެ ދަށުގައި ލިޔެވޭ ލިޔުން','data-th')}</div>`;
+    h+=`<div class="acard"><b>ރިޕޯޓުގެ ސުރުޚީ</b>${chk('report.showTopLine',D.report.showTopLine,'މަތީ ލައިން ދައްކާ')}${txt('report.topLine',D.report.topLine,'މަތީ ލައިން (ބިސްމި)')}${txt('report.title',D.report.title,'ރިޕޯޓުގެ ނަން','data-th')}</div>`;
+    h+=`<div class="acard"><b>ސޮއި ކުރާ ތަން</b>${txt('report.signLine',D.report.signLine,'ސޮއިގެ ލައިން','data-th')}
+      <p class="hint" style="margin:0">މި ލައިނުގައި ތިރީގައިވާ ކޯޑުތައް ލިޔުމުން، ފޯމުގައި ލިޔެފައިވާ އަގު ވަދެގެންދާނެ:</p>
+      <div class="tokens">${D.fields.map(f=>`<span class="token" title="${esc(f.label)}">{${esc(f.id)}}</span>`).join('')}<span class="token" title="މިއަދުގެ ތާރީޚު">{today}</span></div>
+      ${chk('report.showDate',D.report.showDate,'މިއަދުގެ ތާރީޚު ދައްކާ')}${txt('report.dateLabel',D.report.dateLabel,'ތާރީޚުގެ ލޭބަލް','data-th')}</div>`;
+  }
+  if(adminTab==='snippets'){
+    h+=`<p class="hint" style="margin:0">އަބަދު ބޭނުންކުރާ ޖުމްލަތަކާއި ޕެރެގްރާފްތައް. ފޯމުގެ ކޮންމެ ލިޔާ ފޮށްޓެއްގެ "+ ޖުމްލަ" އިން މިތަކުން އެއް ޖުމްލަ ވައްދާލެވޭނެ.</p>`;
+    D.snippets.forEach((s,i)=>{
+      h+=`<div class="acard"><div class="row-head"><b>ޖުމްލަ ${i+1}</b>${moves('snippets',i,D.snippets.length)}</div>
+        ${txt(`snippets.${i}.title`,s.title,'ނަން','data-th')}${area(`snippets.${i}.text`,s.text,'ލިޔުން',3)}</div>`;
+    });
+    h+=`<button class="add" data-aact="add" data-arr="snippets">+ ޖުމްލައެއް އިތުރުކުރޭ</button>`;
+  }
+  $('adminBody').innerHTML=h;
+  $('adminBody').querySelectorAll('textarea').forEach(autosize);
+}
+function getPath(o,p){return p.split('.').reduce((a,k)=>a?.[k],o)}
+function setPath(o,p,v){const ks=p.split('.');const last=ks.pop();const t=ks.reduce((a,k)=>a[k],o);t[last]=v}
+
+$('adminBody').addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset.a)return;
+  const v=el.type==='checkbox'?el.checked:el.value;
+  setPath(D,el.dataset.a,v);
+  if(el.tagName==='TEXTAREA')autosize(el);
+  if(el.tagName==='SELECT'||el.type==='checkbox')renderAdmin(); // labels like "ސުރުޚީ" depend on kind
+  render();setStatus('ރައްކާ ނުކޮށް ބަދަލުތައް ހުރި');
+});
+$('adminBody').addEventListener('change',e=>{if(e.target.tagName==='SELECT'){/* handled by input */}});
+$('adminBody').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-aact]');if(!b)return;
+  const arr=getPath(D,b.dataset.arr),i=+b.dataset.i,a=b.dataset.aact;
+  if(a==='up'&&i>0)[arr[i-1],arr[i]]=[arr[i],arr[i-1]];
+  if(a==='down'&&i<arr.length-1)[arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+  if(a==='del')arr.splice(i,1);
+  if(a==='add'){
+    const path=b.dataset.arr;
+    if(path==='fields')arr.push({id:uid('f'),label:'',type:'text',place:'table',def:''});
+    else if(path==='sections')arr.push({id:uid('sec'),heading:'',hint:'',kind:'text',hideIfEmpty:false,subs:[{id:uid('t'),label:'',showLabel:false}]});
+    else if(path==='snippets')arr.push({id:uid('sn'),title:'',text:''});
+    else arr.push({id:uid('t'),label:'',showLabel:true});
+  }
+  renderAdmin();render();setStatus('ރައްކާ ނުކޮށް ބަދަލުތައް ހުރި');
+  if(a==='add'&&['fields','sections','snippets'].includes(b.dataset.arr)){
+    const cards=$('adminBody').querySelectorAll(':scope > .acard');const c=cards[cards.length-1];
+    const inp=c&&c.querySelector('input[type=text]');if(inp)inp.focus();
+  }
+});
+document.querySelectorAll('#adminTabs button').forEach(b=>b.addEventListener('click',()=>{adminTab=b.dataset.tab;renderAdmin()}));
+function setStatus(t){$('adminStatus').textContent=t}
+
+/* Where settings live: inside Claude → the artifact's store; on the web (Vercel) → /api/settings with an admin password */
+const IN_CLAUDE=!!(window.claude&&window.claude.use);
+let adminPass='';
+try{adminPass=sessionStorage.getItem(KEY+'-pass')||''}catch(e){}
+
+function openAdmin(){
+  $('formPane').hidden=true;$('adminPane').hidden=false;$('adminBtn').setAttribute('aria-pressed','true');
+  setView('form');window.scrollTo({top:0});
+  if(!IN_CLAUDE&&!adminPass){
+    mode='gate';$('adminGate').hidden=false;$('adminMain').hidden=true;$('gateMsg').textContent='';$('adminPass').value='';$('adminPass').focus();return;
+  }
+  mode='admin';D=clone(CFG);
+  $('adminGate').hidden=true;$('adminMain').hidden=false;
+  renderAdmin();render();resetReset();
+  setStatus(cfgSource==='shared'?(IN_CLAUDE?'ސެޓިންގްސް ރައްކާކުރެވިފައިވަނީ އެޕާއެކު':'ސެޓިންގްސް ރައްކާކުރެވިފައިވަނީ ސާވަރުގައި'):cfgSource==='local'?'ސެޓިންގްސް ރައްކާކުރެވިފައިވަނީ މި ޑިވައިސްގައި':'');
+}
+function closeAdmin(){
+  mode='form';D=null;
+  $('formPane').hidden=false;$('adminPane').hidden=true;$('adminBtn').setAttribute('aria-pressed','false');
+  renderForm();render();
+}
+async function postSettings(body){
+  const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let j={};try{j=await r.json()}catch(e){}
+  return {status:r.status,body:j};
+}
+$('adminGate').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const p=$('adminPass').value;if(!p){$('gateMsg').textContent='ޕާސްވޯޑު ޖައްސަވާ.';return}
+  $('gateGo').disabled=true;$('gateMsg').textContent='';
+  try{
+    const r=await postSettings({password:p,check:true});
+    if(r.status===200){adminPass=p;try{sessionStorage.setItem(KEY+'-pass',p)}catch(_){};openAdmin()}
+    else if(r.status===401)$('gateMsg').textContent='ޕާސްވޯޑު ރަނގަޅެއް ނޫން.';
+    else $('gateMsg').textContent='ސާވަރާ ގުޅޭކަށް ނުވި. ކުޑަ ވަގުތަކުން އަލުން މަސައްކަތް ކުރައްވާ.';
+  }catch(err){$('gateMsg').textContent='ސާވަރާ ގުޅޭކަށް ނުވި. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.'}
+  $('gateGo').disabled=false;
+});
+$('gateCancel').addEventListener('click',closeAdmin);
+$('adminBtn').addEventListener('click',()=>mode==='form'?openAdmin():closeAdmin());
+$('adminCancel').addEventListener('click',closeAdmin);
+
+function resetReset(){$('resetArea').innerHTML='<button class="ghost" id="resetBtn">އަސްލު ގޮތަށް ރައްދުކުރޭ</button>';$('resetBtn').addEventListener('click',()=>{
+  $('resetArea').innerHTML='<span class="confirm">ހުރިހާ ސެޓިންގެއް އަސްލު ގޮތަށް؟ <button class="small primary" id="yesReset">އާން</button><button class="small" id="noReset">ނޫން</button></span>';
+  $('yesReset').addEventListener('click',()=>{D=clone(DEFAULT_CFG);renderAdmin();render();resetReset();setStatus('އަސްލު ގޮތަށް ރައްދުކުރެވިއްޖެ. ދާއިމީ ކުރުމަށް ރައްކާކުރޭ.')});
+  $('noReset').addEventListener('click',resetReset);
+})}
+
+/* ================= Shared storage ================= */
+let db=null,cfgRef=null,dbTried=false,canSaveShared=true;
+function applyCfg(c,source){
+  const n=normalize(c);const changed=JSON.stringify(n)!==JSON.stringify(CFG);
+  CFG=n;cfgSource=source;
+  try{localStorage.setItem(CFGKEY,JSON.stringify(CFG))}catch(e){}
+  if(changed&&mode==='form'){renderForm();render()}
+}
+$('adminSave').addEventListener('click',async()=>{
+  const next=normalize(D);
+  $('adminSave').disabled=true;setStatus('ރައްކާކުރަނީ…');
+  if(!IN_CLAUDE){
+    try{
+      const r=await postSettings({password:adminPass,config:next});
+      $('adminSave').disabled=false;
+      if(r.status===200){CFG=next;cfgSource='shared';try{localStorage.setItem(CFGKEY,JSON.stringify(CFG))}catch(e){};toast('ބަދަލުތައް ރައްކާކުރެވިއްޖެ.');closeAdmin();return}
+      if(r.status===401){adminPass='';try{sessionStorage.removeItem(KEY+'-pass')}catch(e){};setStatus('ޕާސްވޯޑު ބަދަލުވެއްޖެ. އެޑްމިން ޕެނަލް ބަންދުކޮށް، އަލުން ވަދެވަޑައިގަންނަވާ.');return}
+      if(r.status===413){setStatus('ރައްކާ ނުކުރެވުނު. ސެޓިންގްސް ވަރަށް ބޮޑުވެއްޖެ.');return}
+      setStatus('ރައްކާ ނުކުރެވުނު. ކުޑަ ވަގުތަކުން އަލުން ރައްކާކުރޭ.');return;
+    }catch(err){$('adminSave').disabled=false;setStatus('ރައްކާ ނުކުރެވުނު. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.');return}
+  }
+  const dbx=await dbReady;
+  if(dbx&&cfgRef&&canSaveShared){
+    try{
+      await cfgRef.set({config:next,savedAt:new Date().toISOString()});
+      CFG=next;cfgSource='shared';try{localStorage.setItem(CFGKEY,JSON.stringify(CFG))}catch(e){}
+      toast('ބަދަލުތައް ރައްކާކުރެވިއްޖެ.');$('adminSave').disabled=false;closeAdmin();return;
+    }catch(err){
+      $('adminSave').disabled=false;
+      if(err&&err.code==='invalid_argument'){canSaveShared=false;setStatus('ރައްކާ ނުކުރެވުނު. މި އެޕްގެ ސެޓިންގްސް ބަދަލުކުރުމުގެ ހުއްދައެއް ތިބާއަށް ނެތް.');return}
+      if(err&&err.code==='quota_exceeded'){setStatus('ރައްކާ ނުކުރެވުނު. ސެޓިންގްސް ވަރަށް ބޮޑުވެއްޖެ. ބޭނުން ނުވާ ޖުމްލަތައް ފުހެލާފައި އަލުން ރައްކާކުރޭ.');return}
+      setStatus('ރައްކާ ނުކުރެވުނު. ކުޑަ ވަގުތަކުން އަލުން ރައްކާކުރޭ.');return;
+    }
+  }
+  // no shared store in this view: keep on this device
+  CFG=next;cfgSource='local';try{localStorage.setItem(CFGKEY,JSON.stringify(CFG))}catch(e){}
+  $('adminSave').disabled=false;toast('ރައްކާކުރެވުނީ މި ޑިވައިސްގައި އެކަނި.');closeAdmin();
+});
+
+const dbReady=(async()=>{
+  try{
+    if(!window.claude||!window.claude.use)return null;
+    const [d,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(user){try{const ce=await user.canEdit();if(ce===false){$('adminBtn').hidden=true;if(mode==='admin')closeAdmin()}}catch(e){}}
+    if(!d)return null;
+    db=d;cfgRef=db.doc('settings/config');
+    cfgRef.onSnapshot(snap=>{
+      if(snap.exists){const data=snap.data();if(data&&data.config)applyCfg(data.config,'shared')}
+    },()=>{});
+    return db;
+  }catch(e){return null}
+})();
+
+if(!IN_CLAUDE){
+  fetch('/api/settings',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.config)applyCfg(j.config,'shared')}).catch(()=>{});
+}
+
+/* ================= Start ================= */
+renderForm();render();
+})();
+</script>
+
+</body>
+</html>

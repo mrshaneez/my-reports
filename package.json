@@ -1,0 +1,10 @@
+{
+  "name": "appeal-report",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dhivehi appeal report builder with an admin panel",
+  "dependencies": {
+    "@vercel/blob": "^2.8.0"
+  }
+}
