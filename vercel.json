@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/fonts/Faruma.ttf", "destination": "/Faruma.ttf" }
+  ]
+}
