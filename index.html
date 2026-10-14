@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="preload" href="/fonts/Faruma.ttf" as="font" type="font/ttf" crossorigin>
+<script>document.documentElement.classList.add("locked")</script>
 <title>އިސްތިއުނާފު ރިޕޯޓު</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +40,16 @@
 [hidden]{display:none!important}
 body{background:var(--ground);color:var(--ink);font-family:var(--f-thaana);font-size:16px;line-height:1.9}
 .wrap{direction:rtl;padding-inline:16px;padding-block:20px 48px;max-width:1360px;margin:0 auto}
+html.locked .wrap,html.locked .toast{display:none}
+.login{display:none;direction:rtl;min-height:100%;padding-inline:16px;padding-block:12vh 48px;justify-content:center;align-items:flex-start}
+html.locked .login{display:flex}
+.login-card{width:min(420px,100%);background:var(--sheet);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 28px rgba(20,40,55,.10);padding:28px 28px 24px;display:flex;flex-direction:column;gap:14px}
+.login-card h1{margin:0;font-size:1.5rem;text-wrap:balance}
+.login-card p{margin:0;color:var(--muted);font-size:.92rem}
+.login-card input[type=password]{font:inherit;direction:ltr;text-align:right;background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:9px 12px;color:var(--ink);width:100%}
+.login-card .primary{padding:9px 14px;font-size:1rem}
+.login-msg{color:var(--seal)!important;min-height:1.6em}
+.login-seal{width:44px;height:44px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;color:var(--accent);font-weight:700;font-size:1.2rem}
 
 header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-bottom:18px}
 .brand{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -184,6 +195,17 @@ button.lib-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-
 </head>
 <body>
 
+<section class="login" id="login" aria-label="ވަދެވުން">
+  <form class="login-card" id="loginForm">
+    <div class="login-seal" aria-hidden="true">⚖</div>
+    <h1 id="loginTitle">އިސްތިއުނާފު ރިޕޯޓު</h1>
+    <p id="loginLead">މި އެޕް ބޭނުންކުރެވޭނީ ވަދެވަޑައިގަތުމަށްފަހުއެވެ.</p>
+    <label class="f"><span>ޕާސްވޯޑު</span><input type="password" id="loginPass" autocomplete="current-password" required></label>
+    <label class="chk"><input type="checkbox" id="loginRemember" checked> މި ޑިވައިސްގައި 30 ދުވަހަށް ހަނދާންކުރޭ</label>
+    <button class="primary" type="submit" id="loginGo">ވަދެވޭ</button>
+    <p class="login-msg" id="loginMsg" role="alert"></p>
+  </form>
+</section>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -193,6 +215,7 @@ button.lib-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-
     <div class="tools">
       <label class="kbd" title="އިނގިރޭސި ކީބޯޑުން ތާނައިން ލިޔުމަށް"><input type="checkbox" id="kbdToggle" checked> ތާނަ ކީބޯޑު (ފޮނެޓިކް)</label>
       <button class="admin-btn lib-btn" id="libBtn" aria-pressed="false">ރިޕޯޓުތައް</button>
+      <button class="ghost" id="logoutBtn" hidden>ނުކުމެވޭ</button>
       <button class="admin-btn" id="adminBtn" aria-pressed="false">އެޑްމިން ޕެނަލް</button>
       <span id="clearArea"></span>
       <button class="primary" id="copyBtn">ރިޕޯޓު ކޮޕީކުރޭ</button>
@@ -549,10 +572,10 @@ async function generateFindings(secId,mode){
       if((S.v[secId+'__text']||'').trim())S.prev[secId]={text:S.v[secId+'__text'],refs:S.refs[secId]||[],note:S.v[secId+'__note']||''};
       S.v[secId+'__text']=j.text;S.refs[secId]=Array.isArray(j.refs)?j.refs:[];S.v[secId+'__note']=j.note||'';
       if(revising){(S.logs[secId]=S.logs[secId]||[]).push(ask);S.v[secId+'__ask']=''}else S.logs[secId]=[];
-      if(!adminPass){adminPass=pass;try{sessionStorage.setItem(KEY+'-pass',pass)}catch(_){}}
+      if(!adminPass)adminPass=pass;
       if(S._sample)delete S._sample;
       save();queueAutosave();msg=(revising?'ބަދަލުކުރެވިއްޖެ. ':'ލިޔެވިއްޖެ. ')+`${S.refs[secId].length} ހަވާލާ. ކޮންމެ ހަވާލާއެއް ބައްލަވާ.`;
-    }else if(r.status===401){adminPass='';try{sessionStorage.removeItem(KEY+'-pass')}catch(_){};msg='ޕާސްވޯޑު ރަނގަޅެއް ނޫން.'}
+    }else if(r.status===401){signOut(true);msg=''}
     else if(j.error==='no_api_key')msg='ސާވަރުގައި ANTHROPIC_API_KEY ސެޓްކޮށްފައެއް ނުވޭ.';
     else if(r.status===504||j.error==='timeout')msg='ވަގުތު ހަމަވެއްޖެ. ކުޑަ ވަގުތަކުން އަލުން މަސައްކަތް ކުރައްވާ.';
     else msg='ލިޔެވޭކަށް ނުވި.'+(j.detail?' ('+j.detail+')':'');
@@ -780,6 +803,7 @@ let JUDG=null,jConfirm=null;
 async function jApi(body){
   const r=await fetch('/api/judgments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:adminPass},body))});
   let j={};try{j=await r.json()}catch(_){}
+  if(r.status===401)signOut(true);
   return {status:r.status,body:j};
 }
 function jMsg(t){const el=$('jStatus');if(el)el.textContent=t}
@@ -906,8 +930,19 @@ function setStatus(t){$('adminStatus').textContent=t}
 
 /* Where settings live: inside Claude → the artifact's store; on the web (Vercel) → /api/settings with an admin password */
 const IN_CLAUDE=!!(window.claude&&window.claude.use);
-let adminPass='';
-try{adminPass=sessionStorage.getItem(KEY+'-pass')||''}catch(e){}
+let adminPass=''; // on the website this holds the sign-in token
+const TOKKEY=KEY+'-token';
+if(!IN_CLAUDE){try{adminPass=localStorage.getItem(TOKKEY)||sessionStorage.getItem(TOKKEY)||''}catch(e){}}
+function storeToken(t,remember){adminPass=t;try{localStorage.removeItem(TOKKEY);sessionStorage.removeItem(TOKKEY);(remember?localStorage:sessionStorage).setItem(TOKKEY,t)}catch(e){}}
+function signOut(expired){
+  if(IN_CLAUDE)return;
+  adminPass='';try{localStorage.removeItem(TOKKEY);sessionStorage.removeItem(TOKKEY);sessionStorage.removeItem(KEY+'-pass')}catch(e){}
+  clearTimeout(autoT);autoT=null;LIB=null;JUDG=null;
+  if(mode!=='form')closeAdmin();
+  document.documentElement.classList.add('locked');
+  $('loginMsg').textContent=expired?'ވަދެވިފައިވާ ވަގުތު ހަމަވެއްޖެ. އަލުން ވަދެވަޑައިގަންނަވާ.':'';
+  $('loginPass').value='';setTimeout(()=>$('loginPass').focus(),0);
+}
 
 function openAdmin(){
   $('formPane').hidden=true;$('libPane').hidden=true;$('libBtn').setAttribute('aria-pressed','false');$('adminPane').hidden=false;$('adminBtn').setAttribute('aria-pressed','true');
@@ -936,7 +971,7 @@ $('adminGate').addEventListener('submit',async e=>{
   $('gateGo').disabled=true;$('gateMsg').textContent='';
   try{
     const r=await postSettings({password:p,check:true});
-    if(r.status===200){adminPass=p;try{sessionStorage.setItem(KEY+'-pass',p)}catch(_){};openAdmin()}
+    if(r.status===200){adminPass=p;openAdmin()}
     else if(r.status===401)$('gateMsg').textContent='ޕާސްވޯޑު ރަނގަޅެއް ނޫން.';
     else $('gateMsg').textContent='ސާވަރާ ގުޅޭކަށް ނުވި. ކުޑަ ވަގުތަކުން އަލުން މަސައްކަތް ކުރައްވާ.';
   }catch(err){$('gateMsg').textContent='ސާވަރާ ގުޅޭކަށް ނުވި. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.'}
@@ -968,7 +1003,7 @@ $('adminSave').addEventListener('click',async()=>{
       const r=await postSettings({password:adminPass,config:next});
       $('adminSave').disabled=false;
       if(r.status===200){CFG=next;cfgSource='shared';try{localStorage.setItem(CFGKEY,JSON.stringify(CFG))}catch(e){};toast('ބަދަލުތައް ރައްކާކުރެވިއްޖެ.');closeAdmin();return}
-      if(r.status===401){adminPass='';try{sessionStorage.removeItem(KEY+'-pass')}catch(e){};setStatus('ޕާސްވޯޑު ބަދަލުވެއްޖެ. އެޑްމިން ޕެނަލް ބަންދުކޮށް، އަލުން ވަދެވަޑައިގަންނަވާ.');return}
+      if(r.status===401){signOut(true);return}
       if(r.status===413){setStatus('ރައްކާ ނުކުރެވުނު. ސެޓިންގްސް ވަރަށް ބޮޑުވެއްޖެ.');return}
       setStatus('ރައްކާ ނުކުރެވުނު. ކުޑަ ވަގުތަކުން އަލުން ރައްކާކުރޭ.');return;
     }catch(err){$('adminSave').disabled=false;setStatus('ރައްކާ ނުކުރެވުނު. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.');return}
@@ -1006,7 +1041,7 @@ const dbReady=(async()=>{
 })();
 
 if(!IN_CLAUDE){
-  fetch('/api/settings',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.config)applyCfg(j.config,'shared')}).catch(()=>{});
+  // settings load once signed in (see the sign-in code below)
 }
 
 /* ================= Saved reports (website only, behind the admin password) ================= */
@@ -1022,6 +1057,7 @@ function setRepStatus(){const el=$('repStatus');if(el)el.textContent=repStatusTe
 async function repApi(body){
   const r=await fetch('/api/reports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({password:adminPass},body))});
   let j={};try{j=await r.json()}catch(_){}
+  if(r.status===401)signOut(true);
   return {status:r.status,body:j};
 }
 function defaultName(){
@@ -1047,7 +1083,7 @@ async function saveReport(quiet){
       repState.savedAt=new Date().toTimeString().slice(0,5);
       if(LIB){LIB=[r.body.item,...LIB.filter(x=>x.id!==r.body.item.id)]}
       if(!quiet)toast('ރިޕޯޓު ރައްކާކުރެވިއްޖެ.');
-    }else if(r.status===401){adminPass='';try{sessionStorage.removeItem(KEY+'-pass')}catch(_){};repState.err='ޕާސްވޯޑު ބަދަލުވެއްޖެ. "ރިޕޯޓުތައް" އިން އަލުން ވަދެވަޑައިގަންނަވާ.'}
+    }else if(r.status===401){repState.saving=false;signOut(true);return}
     else repState.err='ރައްކާ ނުކުރެވުނު.'+(r.body.detail?' ('+r.body.detail+')':'');
   }catch(e){repState.err='ރައްކާ ނުކުރެވުނު. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.'}
   repState.saving=false;setRepStatus();
@@ -1069,7 +1105,7 @@ $('libGate').addEventListener('submit',async e=>{
   e.preventDefault();const p=$('libPass').value;if(!p){libMsg('ޕާސްވޯޑު ޖައްސަވާ.');return}
   try{
     const r=await postSettings({password:p,check:true});
-    if(r.status===200){adminPass=p;try{sessionStorage.setItem(KEY+'-pass',p)}catch(_){};openLib()}
+    if(r.status===200){adminPass=p;openLib()}
     else libMsg(r.status===401?'ޕާސްވޯޑު ރަނގަޅެއް ނޫން.':'ސާވަރާ ގުޅޭކަށް ނުވި.');
   }catch(err){libMsg('ސާވަރާ ގުޅޭކަށް ނުވި.')}
 });
@@ -1139,6 +1175,48 @@ $('libNew').addEventListener('click',async()=>{
   S=blankCase();save();repState={saving:false,savedAt:'',err:''};closeAdmin();toast('އައު ރިޕޯޓެއް.');
 });
 if(IN_CLAUDE)$('libBtn').hidden=true;
+
+/* ================= Sign-in (website only; for now the admin is the only user) ================= */
+async function loadSharedSettings(){
+  try{
+    const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:adminPass,action:'get'})});
+    if(r.status===401){signOut(true);return}
+    const j=await r.json();if(j&&j.config)applyCfg(j.config,'shared');
+  }catch(e){}
+}
+function unlock(){
+  document.documentElement.classList.remove('locked');
+  $('logoutBtn').hidden=false;
+  loadSharedSettings();
+}
+if(!IN_CLAUDE){
+  document.documentElement.classList.add('locked');
+  $('loginTitle').textContent=CFG.app.title||$('loginTitle').textContent;
+  if(adminPass){
+    $('loginLead').textContent='ވަދެވިފައިވާ ކަން ބަލަނީ…';$('loginGo').disabled=true;
+    fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:adminPass,check:true})})
+      .then(r=>{if(r.status===200)unlock();else signOut(r.status===401)})
+      .catch(()=>unlock()) // offline: let the page open; server calls will ask again
+      .finally(()=>{$('loginLead').textContent='މި އެޕް ބޭނުންކުރެވޭނީ ވަދެވަޑައިގަތުމަށްފަހުއެވެ.';$('loginGo').disabled=false});
+  }else setTimeout(()=>$('loginPass').focus(),0);
+  $('loginForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const pw=$('loginPass').value;if(!pw){$('loginMsg').textContent='ޕާސްވޯޑު ޖައްސަވާ.';return}
+    $('loginGo').disabled=true;$('loginMsg').textContent='';
+    try{
+      const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw,remember:$('loginRemember').checked})});
+      const j=await r.json().catch(()=>({}));
+      if(r.status===200&&j.token){storeToken(j.token,$('loginRemember').checked);$('loginPass').value='';unlock();toast('މަރުޙަބާ.')}
+      else if(r.status===401)$('loginMsg').textContent='ޕާސްވޯޑު ރަނގަޅެއް ނޫން.';
+      else $('loginMsg').textContent='ވަދެވޭކަށް ނުވި. ކުޑަ ވަގުތަކުން އަލުން މަސައްކަތް ކުރައްވާ.';
+    }catch(err){$('loginMsg').textContent='ސާވަރާ ގުޅޭކަށް ނުވި. އިންޓަނެޓް ގުޅިފައިވާތޯ ބައްލަވާ.'}
+    $('loginGo').disabled=false;
+  });
+  $('logoutBtn').addEventListener('click',async()=>{
+    if(autoT&&S.meta&&S.meta.id){clearTimeout(autoT);autoT=null;await saveReport(true)}
+    signOut(false);
+  });
+}
 
 /* ================= Start ================= */
 renderForm();render();

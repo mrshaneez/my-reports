@@ -7,12 +7,41 @@ export { list, del };
 
 export const ACCESS_ORDER = process.env.BLOB_ACCESS === 'public' ? ['public', 'private'] : ['private', 'public'];
 
-export function passwordOk(given) {
-  const expected = process.env.ADMIN_PASSWORD || '';
-  if (!expected) return false;
+function sameSecret(given, expected) {
   const a = crypto.createHash('sha256').update(String(given || '')).digest();
-  const b = crypto.createHash('sha256').update(expected).digest();
+  const b = crypto.createHash('sha256').update(String(expected)).digest();
   return crypto.timingSafeEqual(a, b);
+}
+
+// The admin password itself.
+export function isPassword(given) {
+  const expected = process.env.ADMIN_PASSWORD || '';
+  return !!expected && sameSecret(given, expected);
+}
+
+// Sign-in tokens: "v1.<user>.<expiry ms>.<signature>", signed with ADMIN_PASSWORD,
+// so changing the password signs everyone out.
+function sign(payload) {
+  return crypto.createHmac('sha256', 'appeal-report:' + (process.env.ADMIN_PASSWORD || '')).update(payload).digest('base64url');
+}
+export function makeToken(user, days) {
+  const exp = Date.now() + days * 86_400_000;
+  const payload = `v1.${user}.${exp}`;
+  return { token: `${payload}.${sign(payload)}`, expiresAt: new Date(exp).toISOString() };
+}
+export function tokenUser(token) {
+  if (!process.env.ADMIN_PASSWORD) return null;
+  const parts = String(token || '').split('.');
+  if (parts.length !== 4 || parts[0] !== 'v1') return null;
+  const payload = parts.slice(0, 3).join('.');
+  if (!sameSecret(parts[3], sign(payload))) return null;
+  if (!(Number(parts[2]) > Date.now())) return null;
+  return parts[1];
+}
+
+// Every protected route accepts either a valid sign-in token or the admin password.
+export function passwordOk(given) {
+  return !!tokenUser(given) || isPassword(given);
 }
 
 export async function readBody(req) {
